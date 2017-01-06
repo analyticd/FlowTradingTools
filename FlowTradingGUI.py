@@ -485,6 +485,8 @@ class MainForm(wx.Frame):
             self.notebook.AddPage(self.tabRisk, "Risk by region")
             self.tabBookRiskPnL = BookRiskPnLTabPanel(self.riskTreeManager,self.notebook,self)
             self.notebook.AddPage(self.tabBookRiskPnL, "Risk by book")
+            self.tabIRRiskPnL = IRRiskTabPanel(self.riskTreeManager,self.notebook,self)
+            self.notebook.AddPage(self.tabIRRiskPnL, "Interest rate risk")
             self.tabTradeActivityGrid = TradeActivityTabPanel(self.th, self.notebook, self)
             self.notebook.AddPage(self.tabTradeActivityGrid, "Blotter")
         self.tabBondActivityMultiGrid = BondActivityTabPanel(self.th, self.ma, self.notebook, self)
@@ -558,12 +560,14 @@ class MainForm(wx.Frame):
     def onRiskTreeQuery(self,event):
         """Function to query the risk tree. Function is called when user presses ctrl+f
         """
-        item = self.textQuery(event,'Bond or issuer name?').upper()
-        if  (item in bonds.index) or (item in self.issuerlist):
-            self.tabRisk.onRiskTreeQuery(event, item)
-        else:
-            self.notebook.SetSelection(0)
-            print item + ' cannot be found.'
+        # item = self.textQuery(event,'Bond or issuer name?').upper()
+        # if  (item in bonds.index) or (item in self.issuerlist):
+        #     self.tabRisk.onRiskTreeQuery(event, item)
+        # else:
+        #     self.notebook.SetSelection(0)
+        #     print item + ' cannot be found.'
+        item = self.textQuery(event,'Bond or issuer name?')
+        self.tabRisk.onRiskTreeQuery(event, item)
 
     def onBondQuerySub(self,bondname):
         """Function to query the current position for the bond. Function is called by onBondQuery and onQuickBondQuery

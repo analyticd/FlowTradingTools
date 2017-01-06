@@ -12,56 +12,36 @@ import wx.grid as gridlib
 import wx.lib.colourdb
 from wx.lib.pubsub import pub
 
-from RiskTreeView import RiskTree, RiskTreeBookPnL
+from RiskTreeView import RiskTree, RiskTreeBookPnL, IRRiskTree
 from PnLTreeView import PnLTree
 import datetime
 import FO_Toolkit
 
 
 
-class RiskTabPanel(wx.Panel):
-    """RiskTabPanel class: Class to define the Risk tab panel 
+class GenericRiskTabPanel(wx.Panel):
 
-    Attributes:
-    self.tradeHistory : TradeHistory object, see TradeHistoryAnalysis.TradeHistory
-    self.parentnotebook : wx.Python notebook object
-    self.mainframe : wx.Python frame object
-    self.riskTree : riskTreeView > riskTree class instance 
-
-    Methods:
-    __init__()
-    lastUpdateString()
-    drawPanel()
-    onDeepRefreshFrontData()
-    onRefreshFrontData()
-    updatePositions()
-    onFillEODPrices()
-    onRiskTreeQuery()
-    """
-    #----------------------------------------------------------------------
-    def __init__(self, riskTreeManager, parentnotebook, mainframe):
+    def __init__(self, txtID, designClass, riskTreeManager, parentnotebook, mainframe):
         """
         Keyword argument:
         tradeHistory : TradeHistory object, see TradeHistoryAnalysis.TradeHistory
         parentnotebook : wx.Python notebook object
         mainframe : wx.Python frame object
         """
-
-        pub.subscribe(self.updatePositions, "RISKTREE_REDRAWN")
-
+        self.txtID = txtID
         self.riskTreeManager = riskTreeManager
         self.parentnotebook = parentnotebook
         self.mainframe = mainframe
+        self.designClass = designClass
+        pub.subscribe(self.updatePositions, 'TREE_REDRAWN')
         wx.Panel.__init__(self, parent=parentnotebook)
         self.drawPanel()
 
     def lastUpdateString(self):
-        """Defines lastUpdateString variable
-        """
         if self.riskTreeManager.th.df['Date'].iloc[-1]!=datetime.datetime.today().strftime('%d/%m/%y'):
-            return 'Last updated on ' + self.riskTreeManager.th.df['Date'].iloc[-1] + '. Ctrl-F to expand a bond or an issuer.'
+            return 'Last updated on ' + self.riskTreeManager.th.df['Date'].iloc[-1] + '.'
         else:
-            return 'Last updated today at ' + datetime.datetime.now().strftime('%H:%M') + '. Ctrl-F to expand a bond or an issuer.'
+            return 'Last updated today at ' + datetime.datetime.now().strftime('%H:%M') + '.'
 
     def drawPanel(self):
         """Draws the Risk panel 
@@ -71,16 +51,13 @@ class RiskTabPanel(wx.Panel):
         self.sizer2 = wx.BoxSizer(wx.HORIZONTAL)
         self.btn = wx.Button(self, label="Refresh Front data")
         self.btn.Bind(wx.EVT_BUTTON, self.onRefreshFrontData)
-        #self.btn2 = wx.Button(self, label="Fill USD PV")
-        #self.btn2.Bind(wx.EVT_BUTTON, self.onFillEODPrices)
         btn3 = wx.Button(self, label = "Print risk tree")
         btn3.Bind(wx.EVT_BUTTON, self.onPrintRiskTree) 
         self.sizer1.Add(self.btn, 1, wx.ALL, 2)
-        #self.sizer1.Add(self.btn2, 0.5, wx.ALL, 2)
         self.sizer1.Add(btn3, 0.5, wx.ALL, 2)
         self.lastUpdateTime = wx.TextCtrl(self,-1,self.lastUpdateString())
         self.sizer2.Add(self.lastUpdateTime,1,wx.ALL,2)
-        self.riskTree = RiskTree(self,self.riskTreeManager)
+        self.riskTree = self.designClass(self,self.riskTreeManager)
         self.sizerRiskH = wx.BoxSizer(wx.HORIZONTAL)
         self.sizerRiskH.Add(self.riskTree,proportion=1,flag=wx.EXPAND)
         self.sizerRiskV = wx.BoxSizer(wx.VERTICAL)
@@ -108,7 +85,7 @@ class RiskTabPanel(wx.Panel):
         """
         #self.riskTreeManager.onUpdateTree()
         #self.parentnotebook.SetSelection(1)
-        if message.data == 'RiskTree':
+        if message.data == self.txtID:
             self.lastUpdateTime.SetValue(self.lastUpdateString())
             self.btn.Enable()
         pass
@@ -138,128 +115,26 @@ class RiskTabPanel(wx.Panel):
         """
         self.riskTree.onRiskTreeQuery(item)
         pass
+    pass
 
 
-class BookRiskPnLTabPanel(wx.Panel):
-    """RiskTabPanel class: Class to define the Risk tab panel 
-
-    Attributes:
-    self.tradeHistory : TradeHistory object, see TradeHistoryAnalysis.TradeHistory
-    self.parentnotebook : wx.Python notebook object
-    self.mainframe : wx.Python frame object
-    self.riskTree : riskTreeView > riskTree class instance 
-
-    Methods:
-    __init__()
-    lastUpdateString()
-    drawPanel()
-    onDeepRefreshFrontData()
-    onRefreshFrontData()
-    updatePositions()
-    onFillEODPrices()
-    onRiskTreeQuery()
-    """
-    #----------------------------------------------------------------------
+class RiskTabPanel(GenericRiskTabPanel):
     def __init__(self, riskTreeManager, parentnotebook, mainframe):
-        """
-        Keyword argument:
-        tradeHistory : TradeHistory object, see TradeHistoryAnalysis.TradeHistory
-        parentnotebook : wx.Python notebook object
-        mainframe : wx.Python frame object
-        """
-
-        #pub.subscribe(self.updatePositions, "POSITION_UPDATE")
-
-        self.riskTreeManager = riskTreeManager
-        self.parentnotebook = parentnotebook
-        self.mainframe = mainframe
-        wx.Panel.__init__(self, parent=parentnotebook)
-        self.drawPanel()
-        pub.subscribe(self.updatePositions, "RISKTREE_REDRAWN")
-
-    def lastUpdateString(self):
-        """Defines lastUpdateString variable
-        """
-        if self.riskTreeManager.th.df['Date'].iloc[-1]!=datetime.datetime.today().strftime('%d/%m/%y'):
-            return 'Last updated on ' + self.riskTreeManager.th.df['Date'].iloc[-1] + '. Ctrl-F to expand a bond or an issuer.'
-        else:
-            return 'Last updated today at ' + datetime.datetime.now().strftime('%H:%M') + '. Ctrl-F to expand a bond or an issuer.'
-
-    def drawPanel(self):
-        """Draws the Risk panel 
-        """
-        self.topSizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer1 = wx.BoxSizer(wx.HORIZONTAL)
-        self.sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        self.btn = wx.Button(self, label="Refresh Front data")
-        self.btn.Bind(wx.EVT_BUTTON, self.onRefreshFrontData)
-        #self.btn2 = wx.Button(self, label="Fill USD PV")
-        #self.btn2.Bind(wx.EVT_BUTTON, self.onFillEODPrices)
-        btn3 = wx.Button(self, label = "Print risk tree")
-        btn3.Bind(wx.EVT_BUTTON, self.onPrintRiskTree) 
-        self.sizer1.Add(self.btn, 1, wx.ALL, 2)
-        #self.sizer1.Add(self.btn2, 0.5, wx.ALL, 2)
-        self.sizer1.Add(btn3, 0.5, wx.ALL, 2)
-        self.lastUpdateTime=wx.TextCtrl(self,-1,self.lastUpdateString())
-        self.sizer2.Add(self.lastUpdateTime,1,wx.ALL,2)
-        self.riskTree=RiskTreeBookPnL(self,self.riskTreeManager)
-        self.sizerRiskH=wx.BoxSizer(wx.HORIZONTAL)
-        self.sizerRiskH.Add(self.riskTree,proportion=1,flag=wx.EXPAND)
-        self.sizerRiskV=wx.BoxSizer(wx.VERTICAL)
-        self.sizerRiskV.Add(self.sizerRiskH,proportion=1,flag=wx.EXPAND)
-        self.topSizer.Add(self.sizer1, 0, wx.ALL|wx.EXPAND, 2)
-        self.topSizer.Add(self.sizer2, 0, wx.ALL|wx.EXPAND, 2)
-        self.topSizer.Add(self.sizerRiskV, 1, wx.ALL|wx.EXPAND, 5)
-        self.SetSizer(self.topSizer)
-        self.Layout()
-        pass
-
-    def onRefreshFrontData(self,event):
-        """Refreshes Front data. Function is called when the 'Refresh Front data' button is clicked.
-        """
-        self.btn.Disable()
-        if not self.riskTreeManager.EODPricesFilled:
-            self.onFillEODPrices(event)
-        self.lastUpdateTime.SetValue('Requested data update, please wait...')
-        self.mainframe.onTodayTrades(event)
+        GenericRiskTabPanel.__init__(self, 'MAIN_RISK_TREE', RiskTree, riskTreeManager, parentnotebook, mainframe)
         pass
 
 
-    def updatePositions(self,message=None):
-        """event listener for the POSITION_UPDATE event. Updates position when the event is publicised 
-        """
-        #self.riskTree.onUpdateTree()
-        #self.parentnotebook.SetSelection(1)
-        if message.data == 'RiskTreeBookPnL':
-            self.lastUpdateTime.SetValue(self.lastUpdateString())
-            self.btn.Enable()
+class IRRiskTabPanel(GenericRiskTabPanel):
+    def __init__(self, riskTreeManager, parentnotebook, mainframe):
+        GenericRiskTabPanel.__init__(self, 'IR_RISK_TREE', IRRiskTree, riskTreeManager, parentnotebook, mainframe)
         pass
 
-    def onFillEODPrices(self,event):
-        """Function is called when the 'Fill USD PV' button is clicked.
-        """
-        #self.btn2.Disable()
-        x=self.lastUpdateTime.GetValue()
-        self.lastUpdateTime.SetValue('Refreshing EOD prices from Front...')
-        if not self.mainframe.connectedToFront:
-            self.mainframe.onLogInFront(event)
-            #fc=FO_Toolkit.FrontConnection(self.mainframe.front_username,self.mainframe.front_password)
-        if not self.riskTreeManager.EODPricesFilled:
-            #self.riskTreeManager.onFillEODPrices(fc)
-            self.riskTreeManager.onFillEODPrices(self.mainframe.front_connection)
-        self.lastUpdateTime.SetValue(x)
+
+class BookRiskPnLTabPanel(GenericRiskTabPanel):
+    def __init__(self, riskTreeManager, parentnotebook, mainframe):
+        GenericRiskTabPanel.__init__(self, 'BOOK_RISK_TREE', RiskTreeBookPnL, riskTreeManager, parentnotebook, mainframe)
         pass
 
-    def onPrintRiskTree(self, event):
-        """Function to call RiskTreeView.takeScreenshot() to take a screenshot of the risk tree.
-        """
-        self.riskTree.takeScreenshot()
-
-    def onRiskTreeQuery(self, event, item):
-        """Calls the RiskTreeView > RiskTree.onRiskTreeQuery function  
-        """
-        self.riskTree.onRiskTreeQuery(item)
-        pass
 
 class LoginDialog(wx.Dialog):
     """Class to define the login dialog. Function is used in FlowTradingGUI

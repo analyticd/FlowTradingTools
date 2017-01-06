@@ -38,13 +38,15 @@ DAYS2013=pandas.date_range(datetime.datetime(2012,12,31),datetime.datetime(2013,
 DAYS2014=pandas.date_range(datetime.datetime(2013,12,31),datetime.datetime(2014,12,31))
 DAYS2015=pandas.date_range(datetime.datetime(2014,12,31),datetime.datetime(2015,12,31))
 DAYS2016=pandas.date_range(datetime.datetime(2015,12,31),datetime.datetime(2016,12,31))
-DAYSFULL=pandas.date_range(datetime.datetime(2011,12,31),datetime.datetime(2016,12,31))
+DAYS2017=pandas.date_range(datetime.datetime(2016,12,31),datetime.datetime(2017,12,31))
+DAYSFULL=pandas.date_range(datetime.datetime(2011,12,31),datetime.datetime(2017,12,31))
 BDAYS2012=pandas.bdate_range(datetime.datetime(2011,12,31),datetime.datetime(2012,12,31))
 BDAYS2013=pandas.bdate_range(datetime.datetime(2012,12,31),datetime.datetime(2013,12,31))
 BDAYS2014=pandas.bdate_range(datetime.datetime(2013,12,31),datetime.datetime(2014,12,31))
 BDAYS2015=pandas.bdate_range(datetime.datetime(2014,12,31),datetime.datetime(2015,12,31))
 BDAYS2016=pandas.bdate_range(datetime.datetime(2015,12,31),datetime.datetime(2016,12,31))
-BDAYSFULL=pandas.bdate_range(datetime.datetime(2011,12,31),datetime.datetime(2016,12,31))
+BDAYS2017=pandas.bdate_range(datetime.datetime(2016,12,31),datetime.datetime(2017,12,31))
+BDAYSFULL=pandas.bdate_range(datetime.datetime(2011,12,31),datetime.datetime(2017,12,31))
 
 #Recreate modelportfolio.py
 def send_mail_via_com(text, subject, recipient,a1=False,a2=False):
@@ -73,14 +75,14 @@ def send_mail_via_com(text, subject, recipient,a1=False,a2=False):
 
 def comptable2013():
     """
-    Computes return, sharpe ratio, and max drawdawns for the Model porfolio, EMBI, UST10y and SB portfolio vs EMBI
+    Computes return, sharpe ratio, and max drawdawns for the Model porfolio, EMBI, UST10y and ICBCS portfolio vs EMBI
     """
-    out=pandas.DataFrame(index=['ModelPortfolio','EMBI','UST10y','SB portfolio vs EMBI'],columns=['Return','Sharpe','MaxDrawdown'])
+    out=pandas.DataFrame(index=['ModelPortfolio','EMBI','UST10y','ICBCS portfolio vs EMBI'],columns=['Return','Sharpe','MaxDrawdown'])
     out['Return']=bdassets2013.xs(TODAY)-100
     out['Sharpe']=bdasset_sharpe2013
     out['MaxDrawdown']=assets2013.apply(maxdrawdown)
     x=out.transpose()
-    x['SB portfolio vs EMBI']=x['ModelPortfolio']-x['EMBI']
+    x['ICBCS portfolio vs EMBI']=x['ModelPortfolio']-x['EMBI']
     out=out.applymap(lambda u:'{:.1f}'.format(u))
     return out
 
@@ -127,6 +129,9 @@ class Display():
         if period==2016 and self.mp.liveTrades['EntryDate'][bond]<=datetime.datetime(2015,12,31):
             capitalgain=self.mp.liveTrades['Price'][bond]-self.mp.tradedprices[bond][datetime.datetime(2015,12,31)]
             carry=(float(self.mp.bonds[bond]['COUPON'])*(TODAY-datetime.datetime(2015,12,31)).days/365)
+        if period==2017 and self.mp.liveTrades['EntryDate'][bond]<=datetime.datetime(2016,12,31):
+            capitalgain=self.mp.liveTrades['Price'][bond]-self.mp.tradedprices[bond][datetime.datetime(2016,12,31)]
+            carry=(float(self.mp.bonds[bond]['COUPON'])*(TODAY-datetime.datetime(2016,12,31)).days/365)
         if bond=='IVYCST32':
             if period<2013:
                 carry=0
@@ -134,7 +139,7 @@ class Display():
                 carry=(7.09955*(TODAY-datetime.datetime(2012,12,31)).days/365)
             elif period==2014:
                 carry=(7.77433*(TODAY-datetime.datetime(2013,12,31)).days/365)
-        if bond == 'FESHRU18' and period == 2016:
+        if bond == 'FESHRU18' and period >= 2016:
             carry = 0
         txt+='{:>8}'.format('{:>+.2f}'.format(capitalgain))
         txt+='{:>7}'.format('{:>+.2f}'.format(carry))
@@ -145,10 +150,10 @@ class Display():
         lines=[]
         #Commentary
         lines.append('Performance update:')
-        txt='*We are up %.2f%%' %self.mp.performance2016['Returns'].sum() + ' which is %.2f%%' %self.mp.performance2016['CapitalGains'].sum() + ' price appreciation '
-        txt+='and %.2f%%' % self.mp.performance2016['Carry'].sum() + ' carry, vs the EMBI which is %.2f%%.' % (self.mp.analytics.assets2016['EMBI'][-1]-100)
+        txt='*We are up %.2f%%' %self.mp.performance2017['Returns'].sum() + ' which is %.2f%%' %self.mp.performance2017['CapitalGains'].sum() + ' price appreciation '
+        txt+='and %.2f%%' % self.mp.performance2017['Carry'].sum() + ' carry, vs the EMBI which is %.2f%%.' % (self.mp.analytics.assets2017['EMBI'][-1]-100)
         lines.append(txt)
-        txt='*Using the 10y note as the risk-free rate, our Sharpe ratio is %.1f' %self.mp.analytics.bdasset_sharpe2016['ModelPortfolio'] + ' vs %.1f' %self.mp.analytics.bdasset_sharpe2016['EMBI'] + ' for the EMBI.'
+        txt='*Using the 10y note as the risk-free rate, our Sharpe ratio is %.1f' %self.mp.analytics.bdasset_sharpe2017['ModelPortfolio'] + ' vs %.1f' %self.mp.analytics.bdasset_sharpe2017['EMBI'] + ' for the EMBI.'
         lines.append(txt)
         lines.append(' ')
         #Current trades
@@ -160,23 +165,24 @@ class Display():
         lines.append('Corporates')
         for bond in self.mp.liveTrades.index:
             if self.mp.bonds[bond]['INDUSTRY_GROUP']=='Sovereign' or self.mp.bonds[bond]['INDUSTRY_GROUP']=='Banks':continue
-            lines.append(self.txt_current_trade(bond,2016))
+            lines.append(self.txt_current_trade(bond,2017))
         lines.append(' ')
         lines.append('Banks')
         for bond in self.mp.liveTrades.index:
             if self.mp.bonds[bond]['INDUSTRY_GROUP']<>'Banks':continue
-            lines.append(self.txt_current_trade(bond,2016))
+            lines.append(self.txt_current_trade(bond,2017))
         lines.append(' ')
         lines.append('Sovereigns')
         for bond in self.mp.liveTrades.index:
             if self.mp.bonds[bond]['INDUSTRY_GROUP']<>'Sovereign':continue
-            lines.append(self.txt_current_trade(bond,2016))
+            lines.append(self.txt_current_trade(bond,2017))
         lines.append('===========================================================================')
         #Old trades
         lines.append('Old trades     Entry       At     Exit       At        Chg    Carry    P&L')
         for trade in self.mp.oldTrades.index:
         #for (i,t) in self.mp.oldTrades.iterrows():
-            if self.mp.oldTrades['ExitDate'][trade].year<=2015:continue
+            if self.mp.oldTrades['ExitDate'][trade].year<=2016:
+                continue
             bond = self.mp.oldTrades['Bond'][trade]
             entry_ts = self.mp.oldTrades['EntryDate'][trade] 
             exit_ts = self.mp.oldTrades['ExitDate'][trade]
@@ -189,21 +195,21 @@ class Display():
             txt+='  '
             txt+='{:>6.2f}'.format(self.mp.oldTrades['ExitPrice'][trade])
             txt+=' '
-            capitalgain=self.mp.capitalgains[bond][max(entry_ts,datetime.datetime(2016,1,1)):exit_ts].sum()
+            capitalgain=self.mp.capitalgains[bond][max(entry_ts,datetime.datetime(2017,1,1)):exit_ts].sum()
             txt+='{:>8}'.format('{:>+.2f}'.format(capitalgain))
             txt+=' '
-            carry=self.mp.bondcarry[bond][max(entry_ts,datetime.datetime(2016,1,1)):exit_ts].sum()
+            carry=self.mp.bondcarry[bond][max(entry_ts,datetime.datetime(2017,1,1)):exit_ts].sum()
             txt+='{:>6}'.format('{:>+.2f}'.format(carry))
             txt+='  '
             txt+='{:>6}'.format('{:>+.2f}'.format(carry+capitalgain))
             lines.append(txt)
         lines.append('===========================================================================')
         txt='{:<53}'.format('Total')
-        txt+='{:>6}'.format('{:>+.2f}'.format(self.mp.performance2016['CapitalGains'].sum()))
+        txt+='{:>6}'.format('{:>+.2f}'.format(self.mp.performance2017['CapitalGains'].sum()))
         txt+=' '
-        txt+='{:>6}'.format('{:>+.2f}'.format(self.mp.performance2016['Carry'].sum()))
+        txt+='{:>6}'.format('{:>+.2f}'.format(self.mp.performance2017['Carry'].sum()))
         txt+='  '
-        txt+='{:>6}'.format('{:>+.2f}'.format(self.mp.performance2016['Returns'].sum()))
+        txt+='{:>6}'.format('{:>+.2f}'.format(self.mp.performance2017['Returns'].sum()))
         lines.append(txt)
         lines.append(' ')
         #Notes
@@ -212,8 +218,8 @@ class Display():
         #2013: lines.append('Note Ivory Coast 3Jan13 coupon adjusted for in the capital gain column.')
         #2014: lines.append('Note KKB22 November consent fee adjusted for in the capital gain column.')
         #2015: lines.append('Note Mematu September amortisation P&L adjusted for in the capital gain column.')
-        lines.append('Note Mematu March amortisation P&L adjusted for in the capital gain column.')
-        lines.append('Mematu/Mozam April exchange fee P&L adjusted for in the capital gain column.')
+        #2016: lines.append('Note Mematu March amortisation P&L adjusted for in the capital gain column.')
+        #2016: lines.append('Mematu/Mozam April exchange fee P&L adjusted for in the capital gain column.')
         return lines
 
 
@@ -349,6 +355,7 @@ class Builder():
         bondcarry['IVYCST32'][datetime.datetime(2014,01,01):datetime.datetime(2014,12,31)]=7.77433/365#change
         bondcarry['FESHRU18'][datetime.datetime(2015,11,02):datetime.datetime(2015,12,31)]=0#change
         bondcarry['FESHRU18'][datetime.datetime(2016,01,01):datetime.datetime(2016,12,31)]=0#change
+        bondcarry['FESHRU18'][datetime.datetime(2017,01,01):datetime.datetime(2017,12,31)]=0#change
         #Calculate capital gains
         capitalgains=bondpositions*(tradedprices-tradedprices.shift(1)+bondspecial)
         capitalgains.fillna(0,inplace=True)
@@ -367,9 +374,10 @@ class Builder():
         performance2014=performance[performance.index.year>=2014]
         performance2015=performance[performance.index.year>=2015]
         performance2016=performance[performance.index.year>=2016]
+        performance2017=performance[performance.index.year>=2017]
         #print 'Return = %.2f%% Capital = %.2f%% Carry = %.2f%%' % (performance['Returns'].sum(), performance['CapitalGains'].sum(), performance['Carry'].sum())
         print performancebyyear.sum()[['Returns','CapitalGains','Carry']]
-        return (bondcarry,capitalgains,bondpnl,performance,performance2013,performance2014,performance2015,performance2016)
+        return (bondcarry,capitalgains,bondpnl,performance,performance2013,performance2014,performance2015,performance2016,performance2017)
 
 
 class PnLBreakdown:
@@ -428,6 +436,7 @@ class Analytics:
         self.assets2014=self.__reindex_assets__(DAYS2014,self.__build_UST_TR__('US912828WE61 Corp', datetime.datetime(2013,12,15),DAYS2014))
         self.assets2015=self.__reindex_assets__(DAYS2015,self.__build_UST_TR__('US912828G385 Corp', datetime.datetime(2014,12,15),DAYS2015))
         self.assets2016=self.__reindex_assets__(DAYS2016,self.__build_UST_TR__('US912828M565 Corp', datetime.datetime(2015,12,15),DAYS2016))
+        self.assets2017=self.__reindex_assets__(DAYS2017,self.__build_UST_TR__('US912828U246 Corp', datetime.datetime(2016,12,15),DAYS2017))
         self.bdassets=self.assets.reindex(index=BDAYSFULL)
         self.dbdassets=self.bdassets/self.bdassets.shift(1)-1
         self.bdasset_vol=self.dbdassets[:TODAY].std()*sqrt(260)*100
@@ -448,6 +457,10 @@ class Analytics:
         self.dbdassets2016=self.bdassets2016/self.bdassets2016.shift(1)-1
         self.bdasset_vol2016=self.dbdassets2016[:TODAY].std()*sqrt(260)*100
         self.bdasset_sharpe2016=(self.bdassets2016.xs(TODAY)-self.bdassets2016['UST10y'][TODAY])/self.bdasset_vol2016
+        self.bdassets2017=self.assets2017.reindex(index=BDAYSFULL)
+        self.dbdassets2017=self.bdassets2017/self.bdassets2017.shift(1)-1
+        self.bdasset_vol2017=self.dbdassets2017[:TODAY].std()*sqrt(260)*100
+        self.bdasset_sharpe2017=(self.bdassets2017.xs(TODAY)-self.bdassets2017['UST10y'][TODAY])/self.bdasset_vol2017
         pass
 
 class ModelPortfolio():
@@ -459,7 +472,7 @@ class ModelPortfolio():
         self.tradedprices=self.builder.load_historical_bond_prices(self.trades,self.bonds)
         self.bondspecial=self.builder.load_bondspecial()
         (self.tradedprices,self.bondpositions,self.liveTrades,self.oldTrades)=self.builder.load_bondpositions(self.trades,self.tradedprices)
-        (self.bondcarry,self.capitalgains,self.bondpnl,self.performance,self.performance2013,self.performance2014,self.performance2015,self.performance2016)=self.builder.build_portfolio(self.bonds,self.bondpositions,self.bondspecial,self.tradedprices)
+        (self.bondcarry,self.capitalgains,self.bondpnl,self.performance,self.performance2013,self.performance2014,self.performance2015,self.performance2016,self.performance2017)=self.builder.build_portfolio(self.bonds,self.bondpositions,self.bondspecial,self.tradedprices)
         self.liveTrades=self.builder.fill_analytics(self.liveTrades,self.tradedprices,self.bonds)
         self.analytics=Analytics(self.performance)
         self.display=Display(self)
@@ -472,11 +485,11 @@ class ModelPortfolio():
             f.write('%s\n'%line)
             mailbody=mailbody+line+'\n'
         f.close()
-        self.plot_assets(2016,False)
-        self.plot_outperformance(2016,False)
-        self.plot_full(2016,False)
+        self.plot_assets(2017,False)
+        self.plot_outperformance(2017,False)
+        self.plot_full(2017,False)
         if mail:
-            send_mail_via_com(mailbody,'Model portfolio performance update',emailaddress,TEMPPATH+'SB-YTD-full'+TODAY.strftime('%d%b')+'.pdf')
+            send_mail_via_com(mailbody,'Model portfolio performance update',emailaddress,TEMPPATH+'ICBCS-YTD-full'+TODAY.strftime('%d%b')+'.pdf')
         pass
 
     def dfasset(self,fromyear):
@@ -490,8 +503,10 @@ class ModelPortfolio():
             return self.analytics.assets2015
         elif fromyear==2016:
             return self.analytics.assets2016
+        elif fromyear==2017:
+            return self.analytics.assets2017
 
-    def plot_assets(self, fromyear=2016, show=True):
+    def plot_assets(self, fromyear=2017, show=True):
         plt.figure()
         ax1=plt.axes()
         out=self.dfasset(fromyear)[:TODAY].copy()
@@ -501,14 +516,14 @@ class ModelPortfolio():
         out.plot(ax=ax1,title=str(fromyear)+' asset performance')
         ax1.set_ylabel('Total return')
         ax1.yaxis.grid(color='black', linestyle='dashed')
-        plt.savefig(TEMPPATH+'SB-YTD'+TODAY.strftime('%d%b')+'.pdf')
+        plt.savefig(TEMPPATH+'ICBCS-YTD'+TODAY.strftime('%d%b')+'.pdf')
         if show:
             plt.show()
         else:
             plt.close()
         pass
 
-    def plot_outperformance(self, fromyear=2016, show=True):
+    def plot_outperformance(self, fromyear=2017, show=True):
         plt.figure()
         ax1=plt.axes()
         out=self.dfasset(fromyear)[:TODAY].copy()
@@ -519,14 +534,14 @@ class ModelPortfolio():
         out['ModelPortfolio vs EMBI'].plot(title='Model portfolio vs EMBI')
         #out['UST10y'].plot(secondary_y=True, style='g')
         ax1.set_ylabel('Total return')
-        plt.savefig(TEMPPATH+'SBvsEMBI-YTD'+TODAY.strftime('%d%b')+'.pdf')
+        plt.savefig(TEMPPATH+'ICBCSvsEMBI-YTD'+TODAY.strftime('%d%b')+'.pdf')
         if show:
             plt.show()
         else:
             plt.close()
         pass
 
-    def plot_full(self, fromyear=2016, show=True):
+    def plot_full(self, fromyear=2017, show=True):
         fig=plt.figure()
         gs = gridspec.GridSpec(2, 1,height_ratios=[2,1])
         ax1 = plt.subplot(gs[0])
@@ -535,12 +550,12 @@ class ModelPortfolio():
         #fig, axes = plt.subplots(nrows=2)
         out=self.dfasset(fromyear)[:TODAY].copy()
         out['ModelPortfolio vs EMBI']=out['ModelPortfolio']-out['EMBI']
-        out.rename(columns={'ModelPortfolio':'SB portfolio'},inplace=True)
-        out[['SB portfolio','EMBI','UST10y']].plot(ax=ax1)
+        out.rename(columns={'ModelPortfolio':'ICBCS portfolio'},inplace=True)
+        out[['ICBCS portfolio','EMBI','UST10y']].plot(ax=ax1)
         ax1.set_title('Total return')
         out['ModelPortfolio vs EMBI'].plot(ax=ax2)
         ax2.set_title('Performance vs EMBI')
-        plt.savefig(TEMPPATH+'SB-YTD-full'+TODAY.strftime('%d%b')+'.pdf')
+        plt.savefig(TEMPPATH+'ICBCS-YTD-full'+TODAY.strftime('%d%b')+'.pdf')
         if show:
             plt.show()
         else:

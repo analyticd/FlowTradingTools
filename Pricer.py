@@ -830,7 +830,10 @@ class PricingGrid(gridlib.Grid):
         menu = wx.Menu()
         if not fromWindowsMenu:
             self.clickedBond = self.GetCellValue(event.GetRow(), self.columnList.index('BOND'))
-        self.clickedISIN = self.bdm.df.at[self.clickedBond, 'ISIN']
+        try:
+            self.clickedISIN = self.bdm.df.at[self.clickedBond, 'ISIN']
+        except:
+            self.clickedISIN = ''
         showAllqItem = wx.MenuItem(menu, self.showAllqID, "ALLQ")
         menu.AppendItem(showAllqItem)
         showTradeHistoryItem = wx.MenuItem(menu, self.showTradeHistoryID, "Trade history")

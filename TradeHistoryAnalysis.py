@@ -31,10 +31,10 @@ from StaticDataImport import MYPATH, TEMPPATH, THPATH, DEFPATH, UATPATH, ccy, co
 
 #Define globals
 #MYPATH='O:\\Global~2\\Credit~2\\Credit~1\\FlowTr~1\\Tools\\'
-YTDPATH='Z:\\GlobalMarkets\\Credit Trading\\PROD\\Staging\\'
-UKSALES=['COVINOA','TROSSEW','FOXMARK','OXLEYM','SPACHIH','SCRIVENJ','DRABBLES','OZELN','COXLAUR','OLAWOYIM','STIRLINE','LEAMYT','AYRAPETA','SIRIWAJ','DEBEERJ','HOUSERM']
-NYSALES=['WILCOCKT','MURPHYG','OHIGGINJ','MELTONED','BIRKHOLD','LIEBERDE']
-ALLSALES=UKSALES+NYSALES
+YTDPATH = 'Z:\\GlobalMarkets\\Credit Trading\\PROD\\Staging\\'
+UKSALES = ['COVINOA','TROSSEW','FOXMARK','OXLEYM','SPACHIH','SCRIVENJ','DRABBLES','OZELN','COXLAUR','OLAWOYIM','STIRLINE','LEAMYT','AYRAPETA','SIRIWAJ','DEBEERJ','HOUSERM','CROFTJIM','BYRNEJUL']
+NYSALES = ['WILCOCKT','MURPHYG','OHIGGINJ','MELTONED','BIRKHOLD','LIEBERDE','LOPEZLEY']
+ALLSALES = UKSALES + NYSALES
 
 
 #def getFXRate(x):
@@ -352,9 +352,11 @@ class TradeHistory:
         positions['MaturityDT']=positions['MATURITY'].apply(getMaturityDate)
         positions=positions[positions['MaturityDT']>=datetime.datetime.today()]
         positions.rename(columns={'Qty':'SOD_Pos','CNTRY_OF_RISK':'Country','TICKER':'Issuer','CRNCY':'CCY'},inplace=True)
+        positions = positions.join(countries.set_index('Country code',verify_integrity=True)['Region'],on='Country')
         positions['Country'].fillna('na',inplace=True)
+        positions['Region'].fillna('na',inplace=True)
         #positions['ISIN']=positions.index#needed
-        positions=positions[['Bond','Book','CCY','ISIN','Issuer','Country','SOD_Pos']]
+        positions=positions[['Bond','Book','CCY','ISIN','Issuer','Country', 'Region', 'SOD_Pos']]
         positions=positions[pandas.notnull(positions['Bond'])]#filter for bonds that are not understood
         positions['Key'] = positions['Book']+'-'+positions['ISIN']
         positions['Series'] = ''
@@ -378,8 +380,8 @@ class TradeHistory:
     def getView(self,subdf,item_type):
         """Prints the last 30 entries. Function is called by simpleQuery.
         """
-        subdfview=subdf[['Date','Bond','Qty','Price','Counterparty','Sales','SCu','MKu']].copy()
-        subdfview['Qty']=subdfview['Qty'].apply(lambda y:'{:,.0f}'.format(y))
+        subdfview = subdf[['Date','Bond','Qty','Price','Counterparty','Sales','SCu','MKu']].copy()
+        subdfview['Qty'] = subdfview['Qty'].apply(lambda y:'{:,.0f}'.format(y))
         if item_type in ['Bond','Counterparty','Sales']:
             del subdfview[item_type]
         print subdfview.tail(30)
@@ -392,7 +394,7 @@ class TradeHistory:
         item_type : Bond, Counterparty, Sales, Issuer, Country
         item  : bondName, counterpartyName, salesPerson, issuerName, countryName 
         """
-        subdf=self.df[self.df[item_type]==item].copy()
+        subdf = self.df[self.df[item_type]==item].copy()
         print 'Last 30 trades for '+item+':'
         print ''
         self.getView(subdf,item_type)
