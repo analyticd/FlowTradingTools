@@ -1,7 +1,7 @@
 """
 Tree display of Front risk
 Written by Alexandre Almosni   alexandre.almosni@gmail.com
-(C) 2014-2016 Alexandre Almosni
+(C) 2014-2017 Alexandre Almosni
 Released under Apache 2.0 license. More info at http://www.apache.org/licenses/LICENSE-2.0
 
 Functions:
@@ -694,6 +694,7 @@ class RiskTree(DataFrameToTreeListCtrl):
 
     def onUpdateTree(self,message):
         self.df = self.riskTreeManager.th.positionsByISINBook
+        self.df.to_csv(TEMPPATH+'testrisktree.csv')
         super(RiskTree,self).onUpdateTree(message)
 
     def onActivate(self, evt):
@@ -753,7 +754,7 @@ class IRRiskTree(DataFrameToTreeListCtrl):
     def onUpdateTree(self,message):
         data = self.riskTreeManager.th.positionsByISINBook
         data['bins'] = pandas.cut(data['SAVG'],self.bins)
-        data = data.groupby(['CCY','Book','bins'])['Risk'].sum()
+        data = data.groupby(['CCY','Book','bins'])['IRRisk'].sum()
         data = data.unstack()
         data.fillna(0,inplace=True)
         data.columns = data.columns.astype(str)

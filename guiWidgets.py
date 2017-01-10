@@ -1,7 +1,7 @@
 """
 GUI widgets feeding FlowTradingGUI.py
 Written by Alexandre Almosni   alexandre.almosni@gmail.com
-(C) 2014-2016 Alexandre Almosni
+(C) 2014-2017 Alexandre Almosni
 Released under Apache 2.0 license. More info at http://www.apache.org/licenses/LICENSE-2.0
 
 """

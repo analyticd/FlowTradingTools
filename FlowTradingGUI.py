@@ -1,7 +1,7 @@
 """
 Main GUI to run various tools for Credit Flow Trading desk.
 Written by Alexandre Almosni   alexandre.almosni@gmail.com
-(C) 2014-2016 Alexandre Almosni
+(C) 2014-2017 Alexandre Almosni
 Released under Apache 2.0 license. More info at http://www.apache.org/licenses/LICENSE-2.0
 
 Classes:
@@ -513,8 +513,8 @@ class MainForm(wx.Frame):
         self.log.Clear()
         info = wx.AboutDialogInfo()
         info.Name = "Flow Trading Tools"
-        info.Version = "5.1"
-        info.Copyright = "(C) 2014-2016 Alexandre Almosni"
+        info.Version = "6.0"
+        info.Copyright = "(C) 2014-2017 Alexandre Almosni"
         info.Description = wordwrap("All data is indicative. Use at your own risk.",350, wx.ClientDC(self.panel))
         #info.WebSite = ("http://www.pythonlibrary.org", "My Home Page")
         #info.Developers = ["Alexandre Almosni"]
@@ -574,7 +574,7 @@ class MainForm(wx.Frame):
         """
         #self.log.Clear()
         if self.isTrader:
-            self.notebook.SetSelection(4)
+            self.notebook.SetSelection(5)
         else:
             self.notebook.SetSelection(1)
         if self.isTrader:
@@ -681,7 +681,7 @@ class MainForm(wx.Frame):
         questionlist=['Select book:','Select year:','Select month:']
         books=['ALL']
         books.extend(self.th.LDNFLOWBOOKS)
-        choiceList=[books,['2016','2015','2014','2013','2012','2011','2010','2009'],['Full Year','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']]
+        choiceList=[books,['2017','2016','2015','2014','2013','2012','2011','2010','2009'],['Full Year','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']]
         data=self.multipleComboQuery(event,'Client trading report',questionlist,choiceList)
         book=data[0]
         year=int(data[1])
