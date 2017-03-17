@@ -685,16 +685,17 @@ class RiskTree(DataFrameToTreeListCtrl):
         groupList =  ['Region','LongCountry','Issuer','Bond']
         treeHeader = 'Region'
         treeHeaderWidth = 175
-        columnHeaders = ['Position', 'USD PV', 'SPV01','New Trades']#, 'New Trades','Y close']
-        columnList = ['Qty','EODValue','Risk','NewTrades']#,'Volume','EODPrice']
-        columnWidths = [100,100,100,100]
-        columnAlignment = [wx.ALIGN_RIGHT,wx.ALIGN_RIGHT,wx.ALIGN_RIGHT,wx.ALIGN_RIGHT]
-        columnFormats = ['{:,.0f}','{:,.0f}','{:,.0f}','{:,.0f}']
+        columnHeaders = ['Position', 'Gross USD PV', 'Net USD PV', 'SPV01','New Trades']#, 'New Trades','Y close']
+        columnList = ['Qty', 'GrossUSDPV', 'EODValue','Risk','NewTrades']#,'Volume','EODPrice']
+        columnWidths = [100,100,100,100,100]
+        columnAlignment = [wx.ALIGN_RIGHT,wx.ALIGN_RIGHT,wx.ALIGN_RIGHT,wx.ALIGN_RIGHT,wx.ALIGN_RIGHT]
+        columnFormats = ['{:,.0f}','{:,.0f}','{:,.0f}','{:,.0f}','{:,.0f}']
         DataFrameToTreeListCtrl.__init__(self, parent, self.riskTreeManager.th.positionsByISINBook, groupList, treeHeader, treeHeaderWidth, columnHeaders, columnList, columnWidths, columnAlignment, columnFormats, 'MAIN_RISK_TREE')
 
     def onUpdateTree(self,message):
         self.df = self.riskTreeManager.th.positionsByISINBook
-        self.df.to_csv(TEMPPATH+'testrisktree.csv')
+        self.df['GrossUSDPV'] = self.df['EODValue'].abs()
+        #self.df.to_csv(TEMPPATH+'testrisktree.csv')
         super(RiskTree,self).onUpdateTree(message)
 
     def onActivate(self, evt):

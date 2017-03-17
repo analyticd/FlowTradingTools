@@ -17,18 +17,41 @@ u'Product', u'Protocol', u'Currency', u'Market Category',
 u'Inquiry Volume', u'Local Inquiry Volume',
 u'Counterparty Response Volume', u'Local Trade Volume']
 
+IMPORT_DIC = dict(zip(BASE_COLUMNS,[object for i in BASE_COLUMNS]))
+IMPORT_DIC[u'COUPON'] = pandas.np.float64
+IMPORT_DIC[u'Level'] = pandas.np.float64
+IMPORT_DIC[u'Adj. Level'] = pandas.np.float64
+IMPORT_DIC[u'Price'] = pandas.np.float64
+IMPORT_DIC[u'Cover'] = pandas.np.float64
+#IMPORT_DIC[u'Inquiry Timestamp'] = pandas.np.datetime64
+IMPORT_DIC[u'Inquiry ID'] = pandas.np.float64
+IMPORT_DIC[u'Trade ID'] = pandas.np.float64
+IMPORT_DIC[u'BM Price'] = pandas.np.float64
+IMPORT_DIC[u'Yield'] = pandas.np.float64
+IMPORT_DIC[u'Z Spread'] = pandas.np.float64
+IMPORT_DIC[u'Net Money'] = pandas.np.float64
+IMPORT_DIC[u'Inquiry Volume'] = pandas.np.float64
+IMPORT_DIC[u'Local Inquiry Volume'] = pandas.np.float64
+IMPORT_DIC[u'Counterparty Response Volume'] = pandas.np.float64
+IMPORT_DIC[u'Local Trade Volume'] = pandas.np.float64
+
+USECOLS = [u'Status',u'Client',u'CLT Trader',u'Bid/Offer',u'ISIN',u'Inquiry Timestamp',u'Currency',u'Local Inquiry Volume',u'Product']
+#USECOLSID = []
+#for c in USECOLS:
+
 
 class FullMarketAxessData():
 
-    def __init__(self, rebuild=False):
+    def __init__(self, rebuild=False, forceLastDay=False):
         self.savepath = MAPATH+'ma_full.csvz'
-        if rebuild:
+        if rebuild or (not os.path.exists(self.savepath)):
             self.load_files_full()
-        if not(os.path.exists(self.savepath)) or datetime.datetime.fromtimestamp(os.path.getmtime(self.savepath)).date()<datetime.datetime.today().date():
+        elif datetime.datetime.fromtimestamp(os.path.getmtime(self.savepath)).date()<datetime.datetime.today().date() or forceLastDay:
             self.load_files()
         else:
-            self.df = pandas.read_csv(self.savepath, parse_dates=['Inquiry Timestamp'], index_col=0, compression='bz2')
-        self.df = self.df[['Status','Client','CLT Trader','Bid/Offer','ISIN','Inquiry Timestamp','Currency','Local Inquiry Volume']]
+            self.df = pandas.read_csv(self.savepath, parse_dates=['Inquiry Timestamp'], index_col=0, compression='bz2', dtype=IMPORT_DIC)#, usecols=USECOLS)
+        self.df = self.df[['Status','Client','CLT Trader','Bid/Offer','ISIN','Inquiry Timestamp','Currency','Local Inquiry Volume','Product']]
+        self.df = self.df[self.df['Product']=='Emerging Markets'].copy()
         self.df.rename(columns = {'Local Inquiry Volume':'AbsQty', 'Currency':'CCY','Inquiry Timestamp':'Date'}, inplace = True)
         self.df = self.df[self.df['CCY'].isin(['USD','EUR','CHF','GBP'])]
         self.df = self.df.join(allisins, on = 'ISIN')
@@ -67,7 +90,7 @@ class FullMarketAxessData():
         self.df.to_csv(self.savepath, compression = 'bz2')
 
     def load_files(self):
-        self.df = pandas.read_csv(self.savepath, parse_dates=['Inquiry Timestamp'], index_col=0, compression = 'bz2')
+        self.df = pandas.read_csv(self.savepath, parse_dates=['Inquiry Timestamp'], index_col=0, compression = 'bz2', dtype=IMPORT_DIC)
         last_existing_date = (self.df.iloc[-1]['Inquiry Timestamp']).date()
         start_date = last_existing_date + datetime.timedelta(1)
         end_date = datetime.date.today()

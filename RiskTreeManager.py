@@ -73,8 +73,10 @@ class RiskTreeManager():
         self.th.positions['EODValue'] = 0.0
         #self.th.positions['Risk'] = 0.0
         self.displayPositions = self.th.positions[(self.th.positions['Qty']<=-1) | (self.th.positions['Qty']>=1)].copy()
-        self.displayPositions = self.displayPositions.join(bonds['REGS'])
-        self.displayPositions = self.displayPositions.join(self.cntrymap['LongCountry'],on='Country')
+        # del self.displayPositions['REGS']
+        # del self.displayPositions['144A']
+        # self.displayPositions = self.displayPositions.join(bonds['REGS'])
+        self.displayPositions = self.displayPositions.join(self.cntrymap['LongCountry'], on='Country')
         self.displayPositions['NewTrades'] = 0.0
         self.displayGroup = self.displayPositions.groupby(['Region','LongCountry','Issuer','Bond']).sum()
         #self.rateDisplayGroup = self.displayPositions.groupby(['CCY','Bond']).sum()
@@ -106,14 +108,15 @@ class RiskTreeManager():
             self.lock.acquire()
             bond = message.data.name
             idx = (self.th.positionsByISINBook['Bond'] == bond)
-            if idx.sum()>0:
+            if idx.sum() > 0:
                 price = message.data['MID']
                 self.th.positionsByISINBook.loc[idx,'PriceT'] = price
                 self.th.positionsByISINBook.loc[idx,'SODPnL'] = self.th.positionsByISINBook.loc[idx,'SOD_Pos'] * self.bdm.df.loc[bond,'PRINCIPAL_FACTOR'] * (price - self.th.positionsByISINBook.loc[idx,'PriceY'])/100.
-                self.th.positionsByISINBook.loc[idx,'SODPnL'].fillna(0, inplace=True)
-                fx = ccy.at[bonds.at[bond,'CRNCY'],'2016']
+                # self.th.positionsByISINBook.loc[idx,'SODPnL'].fillna(0, inplace=True) # this is a view
+                self.th.positionsByISINBook.loc[idx,'SODPnL'] = self.th.positionsByISINBook.loc[idx,'SODPnL'].fillna(0) # this is a view
+                fx = ccy.at[bonds.at[bond,'CRNCY'], '2017']
                 if bond in self.new_trades['Bond'].values:
-                    for (k,grp) in self.positionDeltas:
+                    for (k, grp) in self.positionDeltas:
                         isin = k[1]
                         try:
                             if allisins[isin] == bond:#grp['Qty'].sum()!=0 
@@ -139,22 +142,22 @@ class RiskTreeManager():
         savepath = TEMPPATH + 'EODPrices.csv'
         noEODPricesFile = not(os.path.exists(savepath)) or datetime.datetime.fromtimestamp(os.path.getmtime(savepath)).date()<datetime.datetime.today().date()
         if noEODPricesFile:
-            for idx,row in self.th.positionsByISINBook.iterrows():
-                self.th.positionsByISINBook.loc[idx,'PriceY'] = fc.historical_price_query(row['ISIN'], yesterdayDateSTR)
+            for idx, row in self.th.positionsByISINBook.iterrows():
+                self.th.positionsByISINBook.loc[idx, 'PriceY'] = fc.historical_price_query(row['ISIN'], yesterdayDateSTR)
             self.th.positionsByISINBook.to_csv(TEMPPATH+'SOD_risk_prices.csv')
             for bond in self.displayPositions.index:
-                self.th.positions.loc[bond,'EODPrice']=self.th.positionsByISINBook.loc[self.th.positionsByISINBook['Bond']==bond,'PriceY'].iloc[0]
+                self.th.positions.loc[bond,'EODPrice'] = self.th.positionsByISINBook.loc[self.th.positionsByISINBook['Bond']==bond, 'PriceY'].iloc[0]
             self.EODPrices = self.th.positions['EODPrice'].copy()
             self.EODPrices.to_csv(savepath)
             self.th.positionsByISINBook[['SOD_Pos','PriceY','Qty']] = self.th.positionsByISINBook[['SOD_Pos','PriceY','Qty']].astype(float)
         else:
-            self.EODPrices = pandas.read_csv(savepath,header=None,index_col=0,names=['EODPrice'],squeeze=True)
+            self.EODPrices = pandas.read_csv(savepath, header=None, index_col=0, names=['EODPrice'], squeeze=True)
             self.th.positions['EODPrice'] = self.EODPrices
             self.th.positionsByISINBook = pandas.read_csv(TEMPPATH+'SOD_risk_prices.csv', index_col=0) #to pick up the prices
         self.EODPrices.name = 'EODPrice'
         del self.th.positionsByISINBook['EODPrice']
         self.th.positionsByISINBook = self.th.positionsByISINBook.join(self.EODPrices, on='Bond')
-        self.th.positionsByISINBook['USDQty'] = self.th.positionsByISINBook.apply(lambda row:row['Qty']/ccy.loc[row['CCY'],'2016'],axis=1)
+        self.th.positionsByISINBook['USDQty'] = self.th.positionsByISINBook.apply(lambda row:row['Qty']/ccy.loc[row['CCY'],'2017'],axis=1)
         for issuer in self.riskFreeIssuers:
             #self.th.positions.loc[self.th.positions['Issuer']==issuer,'Risk'] = 0 # UST HAVE NO CREDIT RISK
             self.th.positionsByISINBook.loc[self.th.positionsByISINBook['Issuer']==issuer,'Risk'] = 0 # UST HAVE NO CREDIT RISK
@@ -168,50 +171,22 @@ class RiskTreeManager():
         new_bonds = list(set(self.traded_bonds) - set(self.displayPositions.index))
         
         self.th.positions['EODPrice'] = self.EODPrices
-        self.th.positions['EODPrice'].fillna(0.0,inplace=True)
+        self.th.positions['EODPrice'].fillna(0.0, inplace=True)
         for bond in new_bonds:
             self.th.positions.loc[bond,'EODPrice'] = self.th.df[self.th.df['Bond']==bond].iloc[-1]['Price'] # we take the last traded price
         self.EODPrices = self.th.positions['EODPrice'].copy()
         if self.bdmReady:
-            #self.th.positions['PRINCIPAL_FACTOR'] = self.bdm.df['PRINCIPAL_FACTOR']
-            #self.th.positions['RISK_MID'] = self.bdm.df['RISK_MID']
-            #Following 2 lines get rid of some runtime warning - possibly a bug - http://stackoverflow.com/questions/30519487/pandas-error-invalid-value-encountered
-            #self.th.positions['PRINCIPAL_FACTOR'].fillna(1.0,inplace=True) # in doubt principal is 1
-            #self.th.positions['RISK_MID'].fillna(0.0,inplace=True) # in doubt risk is 0
             pass
         else:
-            #self.th.positions['PRINCIPAL_FACTOR'] = 1.0
-            #self.th.positions['RISK_MID'] = 0.0
             self.th.positionsByISINBook['PRINCIPAL_FACTOR'] = 1.0
             self.th.positionsByISINBook['RISK_MID'] = 0.0
             self.th.positionsByISINBook['SAVG'] = 0.0
             self.th.positionsByISINBook['IRRisk'] = 0.0
-        ###
-        #if len(new_bonds) > 0:
-        #    self.th.positions.loc[new_bonds,'PRINCIPAL_FACTOR'] = self.bdm.df['PRINCIPAL_FACTOR']
-        #    self.th.positions.loc[new_bonds,'RISK_MID'] = self.bdm.df['RISK_MID']
-        #    spbonds = list(set(SPECIALBONDS) & set(new_bonds))
-        #    if len(spbonds)>0:
-        #        dc = dict(zip(spbonds,map(lambda x:bonds.loc[x,'REGS']+ ' Corp',spbonds)))
-        #        output = blpapiwrapper.simpleReferenceDataRequest(dc,['WORKOUT_OAS_MID_MOD_DUR'])
-        #        self.th.positions.loc[spbonds,'RISK_MID'] = output['WORKOUT_OAS_MID_MOD_DUR'].astype(float)
-        
-        #self.th.positions['USDQty'] = self.th.positions.apply(lambda row:row['Qty']/ccy.loc[row['CCY'],'2016'],axis=1)
-        #self.th.positions['EODValue'] = self.th.positions['EODPrice']*self.th.positions['USDQty']/100.*(self.th.positions['PRINCIPAL_FACTOR'])
-        #self.th.positions['Risk'] = -self.th.positions['USDQty']*self.th.positions['RISK_MID']/10000
-        
-        #for issuer in self.riskFreeIssuers:
-        #    self.th.positions.loc[self.th.positions['Issuer']==issuer,'Risk'] = 0.0 # UST HAVE NO CREDIT RISK
-        #self.displayPositions = self.th.positions.loc[list(self.displayPositions.index)+new_bonds]#SOD risk + new trades
-        #self.displayPositions = self.displayPositions.join(self.cntrymap['LongCountry'],on='Country')
-        #self.displayPositions['NewTrades'] = 0.0
-        #self.displayPositions.loc[self.traded_bonds,'NewTrades'] = (self.th.df[self.th.df['Date']==todayDateSTR]).groupby('Bond')['Qty'].sum()
-        #self.displayGroup = self.displayPositions.groupby(['Region','LongCountry','Issuer','Bond']).sum()
         
         self.th.positionsByISINBook['PriceT'] = self.th.positionsByISINBook['PriceT'].astype(float)#NEEDED OTHERWISE DEFAULTS TO int64
-        for (i,row) in self.th.positionsByISINBook.iterrows():
+        for (i, row) in self.th.positionsByISINBook.iterrows():
             try:
-                self.th.positionsByISINBook.at[i,'PriceT'] = self.bdm.df.at[row['Bond'],'MID']
+                self.th.positionsByISINBook.at[i,'PriceT'] = self.bdm.df.at[row['Bond'], 'MID']
             except:
                 self.th.positionsByISINBook.at[i,'PriceT'] = pandas.np.nan # for UST and unrecognized bonds
         riskFreeIsins = []
@@ -235,15 +210,15 @@ class RiskTreeManager():
         self.th.positionsByISINBook['SODPnL'].fillna(0.0, inplace = True) 
         self.th.positionsByISINBook['TradePnL'].fillna(0.0, inplace = True)
         self.th.positionsByISINBook['MK'].fillna(0.0, inplace = True)
-        self.th.positionsByISINBook['TotalPnL'] = self.th.positionsByISINBook['SODPnL']/self.th.positionsByISINBook.apply(lambda row:ccy.loc[row['CCY'],'2016'],axis=1) + self.th.positionsByISINBook['TradePnL']/self.th.positionsByISINBook.apply(lambda row:ccy.loc[row['CCY'],'2016'],axis=1)
-        self.th.positionsByISINBook['USDQty'] = self.th.positionsByISINBook.apply(lambda row:row['Qty']/ccy.loc[row['CCY'],'2016'],axis=1)
+        self.th.positionsByISINBook['TotalPnL'] = self.th.positionsByISINBook['SODPnL']/self.th.positionsByISINBook.apply(lambda row:ccy.loc[row['CCY'],'2017'],axis=1) + self.th.positionsByISINBook['TradePnL']/self.th.positionsByISINBook.apply(lambda row:ccy.loc[row['CCY'],'2016'],axis=1)
+        self.th.positionsByISINBook['USDQty'] = self.th.positionsByISINBook.apply(lambda row:row['Qty']/ccy.loc[row['CCY'],'2017'],axis=1)
         self.th.positionsByISINBook['EODValue'] = self.th.positionsByISINBook['EODPrice']*self.th.positionsByISINBook['USDQty']/100.*(self.th.positionsByISINBook['PRINCIPAL_FACTOR'])
         self.th.positionsByISINBook['Risk'] = -self.th.positionsByISINBook['USDQty']*self.th.positionsByISINBook['RISK_MID']/10000
         self.th.positionsByISINBook['IRRisk'] = self.th.positionsByISINBook['Risk'] 
         for issuer in self.riskFreeIssuers:
             self.th.positionsByISINBook.loc[self.th.positionsByISINBook['Issuer']==issuer,'Risk'] = 0.0
-        self.th.positionsByISINBook['NewTrades']=self.th.positionsByISINBook['Qty']-self.th.positionsByISINBook['SOD_Pos']
-        self.th.positionsByISINBook['NewTrades'].fillna(0,inplace=True)
+        self.th.positionsByISINBook['NewTrades'] = self.th.positionsByISINBook['Qty']-self.th.positionsByISINBook['SOD_Pos']
+        self.th.positionsByISINBook['NewTrades'].fillna(0, inplace=True)
         #self.th.positionsByISINBook['']
         #self.displayPositionsBook = self.th.positionsByISINBook
         self.displayGroupBook = self.th.positionsByISINBook.groupby(['Book','LongCountry','Issuer','Bond','Series']).sum() #NECESSARY
@@ -275,15 +250,15 @@ class RiskTreeManager():
             else:
                 lr = self.new_trades.loc[self.new_trades['ISIN']==k[1]].iloc[-1]#take the last trade -> ONLY FOR STATIC DATA
                 bond = lr['Bond']
-
-                #pf = self.th.positions.at[bond,'PRINCIPAL_FACTOR']
-                #r = self.th.positions.at[bond,'RISK_MID']
                 try:
                     pf = self.bdm.df.at[bond,'PRINCIPAL_FACTOR']
                     r = self.bdm.df.at[bond,'RISK_MID']
                     savg = self.bdm.df.at[bond,'SAVG']
                 except:
-                    print bond + ' is missing in the Pricer!!!'
+                    print key + ' is missing in the Pricer!!!'
+                    pf = 1
+                    r = 0
+                    savg = 0
                 lc = self.cntrymap.at[lr['Country'],'LongCountry']
                 rg = lr['Region']
                 pt = lr['Price']

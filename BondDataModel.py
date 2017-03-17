@@ -1,7 +1,7 @@
 """
 Bond pricer - displays data from Bloomberg and Front, MVC architecture.
 Written by Alexandre Almosni   alexandre.almosni@gmail.com
-(C) 2014-2015 Alexandre Almosni
+(C) 2014-2017 Alexandre Almosni
 Released under Apache 2.0 license. More info at http://www.apache.org/licenses/LICENSE-2.0
 
 Classes:
@@ -103,7 +103,7 @@ class BondDataModel():
         colsDescription = ['ISIN', 'BOND', 'SERIES', 'CRNCY', 'MATURITY', 'COUPON', 'AMT_OUTSTANDING', 'SECURITY_NAME',
                            'INDUSTRY_GROUP', 'CNTRY_OF_RISK', 'TICKER', 'MATURITYDT']
         # these columns will feed from Bloomberg (or Front) and be regenerated only once
-        colsPriceHistory = ['P1DFRT', 'P1D', 'P1W', 'P1M', 'Y1D', 'Y1W', 'Y1M','SAVG','SAVG1D','SAVG1W','SAVG1M','ISP1D','ISP1W','ISP1M','INTSWAP1D','INTSWAP1W','INTSWAP1M']
+        colsPriceHistory = ['P1DFRT', 'P1D', 'P1W', 'P1M', 'Y1D', 'Y1W', 'Y1M','SAVG','SAVG1D','SAVG1W','SAVG1M','ISP1D','ISP1W','ISP1M','INTSWAP1D','INTSWAP1W','INTSWAP1M', 'PRINCIPAL_FACTOR']
         # these will feed from Bloomberg only once
         colsRating = ['SNP', 'MDY', 'FTC']
         colsAccrued = ['ACCRUED', 'D2CPN']
@@ -111,7 +111,7 @@ class BondDataModel():
         colsPrice = ['BID', 'ASK', 'MID', 'BID_SIZE', 'ASK_SIZE']#ADD LAST_UPDATE
         colsAnalytics = ['YLDB', 'YLDA', 'YLDM', 'ZB', 'ZA', 'ZM','INTSWAP','ISP','RSI14','RISK_MID']
         colsChanges = ['DP1FRT', 'DP1D', 'DP1W', 'DP1M', 'DY1D', 'DY1W', 'DY1M','DISP1D','DISP1W','DISP1M']
-        colsPosition = ['POSITION']
+        colsPosition = ['POSITION', 'REGS', '144A','MV','RISK']
         self.colsAll = colsDescription + colsPriceHistory + colsRating + colsAccrued + colsPrice + colsAnalytics + colsChanges + colsPosition  # +colsPricingHierarchy+colsUpdate
 
         self.df = pandas.DataFrame(columns=self.colsAll, index=bonds.index)
@@ -147,7 +147,13 @@ class BondDataModel():
         """
         if self.th is not None:
             self.df['POSITION'] = self.th.positions['Qty']
+            self.df['REGS'] = self.th.positions['REGS']
+            self.df['144A'] = self.th.positions['144A']
             self.df['POSITION'].fillna(0, inplace=True)
+            self.df['REGS'].fillna(0, inplace=True)
+            self.df['144A'].fillna(0, inplace=True)
+            self.df['RISK'] = -self.df['RISK_MID'] * self.df['POSITION'] / 10000.
+
 
     def updatePrice(self, isinkey, field, data, bidask):
         """
@@ -178,8 +184,6 @@ class BondDataModel():
 
     def send_price_update(self, bonddata):
         pub.sendMessage('BOND_PRICE_UPDATE', message=MessageContainer(bonddata))
-
-
 
     def updateStaticAnalytics(self, bond):
         """Updates static analytics.
@@ -214,8 +218,14 @@ class BondDataModel():
     def updatePositions(self, message=None):
         """Updates position
         """
-        self.df['POSITION'] = message.data['Qty']
-        self.df['POSITION'].fillna(0, inplace=True)
+        self.lock.acquire()
+        self.df['REGS'] = message.data['REGS']
+        self.df['144A'] = message.data['144A']
+        self.df['REGS'].fillna(0, inplace=True)
+        self.df['144A'].fillna(0, inplace=True)
+        self.df['POSITION'] = self.df['REGS'] + self.df['144A']
+        self.df['RISK'] = -self.df['RISK_MID'] * self.df['POSITION'] / 10000.
+        self.lock.release()
 
     def startUpdates(self):
         """Starts live feed from Bloomberg.

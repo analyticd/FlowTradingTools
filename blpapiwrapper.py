@@ -474,7 +474,7 @@ class ObserverStreamExample(Observer):
 
 
 def streamPatternExample():
-    stream = BLPStream('ESM5 Index', ['BID', 'ASK'], 0, 1)
+    stream = BLPStream('ESH7 Index', ['BID', 'ASK'], 0, 1)
     #stream=BLPStream('XS1151974877 CORP',['BID','ASK'],0,1) #Note that for a bond only BID gets updated even if ASK moves.
     obs = ObserverStreamExample()
     stream.register(obs)

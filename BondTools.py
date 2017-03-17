@@ -445,7 +445,7 @@ class ChartEngine():
         if 'lastyear' in self.kwargs:
             lastyear = self.kwargs['lastyear']
         else:
-            lastyear = 2015
+            lastyear = 2016
         if 'startdate' in self.kwargs:
             startdate = self.kwargs['startdate']
         else:
@@ -503,7 +503,7 @@ class ChartEngine():
         if 'lastyear' in self.kwargs:
             lastyear = self.kwargs['lastyear']
         else:
-            lastyear = 2015
+            lastyear = 2016
         if 'startdate' in self.kwargs:
             startdate = self.kwargs['startdate']
         else:
