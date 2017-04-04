@@ -429,6 +429,7 @@ class ChartEngine():
                 df['diff'] = df['BLOOMBERG_MID_G_SPREAD']-df['index']
                 lastdiff = df['diff'].iloc[-1]
                 self.output.loc[bond] = [(lastdiff-df['diff'].tail(d).mean())/df['diff'].tail(d).std() for d in timeframes]
+            # print self.output
             self.output['Sum'] = self.output.sum(axis=1)
             self.output = self.output.applymap(lambda x:int(x*10)/10.)
             #self.output = self.output.sort('Sum',ascending=False)

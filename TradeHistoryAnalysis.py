@@ -646,7 +646,7 @@ class TradeHistory:
         subdf['AbsQtyClient'] = 0
         subdf['AbsQtyClient'] = subdf.loc[subdf['TotalSC']!=0,'AbsQty']
         subdf['AbsQtyEM'] = 0
-        subdf['AbsQtyEM'] = subdf.loc[~subdf['Issuer'].isin(['T','DBR','UKT']),'AbsQty']
+        subdf['AbsQtyEM'] = subdf.loc[~subdf['Issuer'].isin(['T','DBR','UKT', 'OBL']),'AbsQty']
         subdf['AbsQtyMK'] = 0
         subdf['AbsQtyMK'] = subdf.loc[subdf['MK']!=0,'AbsQty']
         book = subdf.groupby('Book')

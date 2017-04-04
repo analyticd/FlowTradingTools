@@ -47,6 +47,21 @@ def getMaturityDate(d):
         output=datetime.datetime(2049,12,31)
     return output
 
+class RFdata(wx.Timer):
+
+    def __init__(self, secs, req, bdm):
+        wx.Timer.__init__(self)
+        self.bdm = bdm
+        self.req = req                     
+        self.Bind(wx.EVT_TIMER, self.refreshRFBonds)
+        self.Start(1000*secs, oneShot = False)
+
+    def refreshRFBonds(self,event):
+        self.req.get()
+        out = self.req.output.astype(float)
+        for (isinkey, data) in out.iterrows():
+            self.bdm.updatePrice(isinkey, 'ALL', data, 'ANALYTICS')
+        # print 'Refreshed RF bonds'
 
 class BondDataModel():
     """BondDataModel class : Class to define the bond data model
@@ -133,7 +148,12 @@ class BondDataModel():
         self.bondList = []
         self.bbgPriceQuery = ['BID', 'ASK', 'YLD_CNV_BID', 'YLD_CNV_ASK', 'Z_SPRD_BID', 'Z_SPRD_ASK','RSI_14D', 'BID_SIZE', 'ASK_SIZE']
         self.bbgPriceSpecialQuery = ['BID', 'ASK', 'YLD_CNV_BID', 'YLD_CNV_ASK', 'OAS_SPREAD_BID', 'OAS_SPREAD_ASK','RSI_14D', 'BID_SIZE', 'ASK_SIZE']
+        self.riskFreeIssuers = ['T', 'DBR', 'UKT', 'OBL']
+        self.bbgPriceRFQuery = ['BID', 'ASK', 'BID_YIELD', 'ASK_YIELD']
         pass
+
+    def timerTestFunction(self, event):
+        print 'Timer test'
 
     def reduceUniverse(self):
         """Reduce the bond universe to bonds that are in any one grid
@@ -141,6 +161,11 @@ class BondDataModel():
         self.bondList = list(set([bond for grid in self.parent.gridList for bond in grid.bondList]))#set removes duplicates
         self.df = self.df.reindex(self.bondList)
         self.df = self.df[pandas.notnull(self.df['ISIN'])]
+        self.rfbonds = list(self.df.loc[self.df['TICKER'].isin(self.riskFreeIssuers)].index)
+        self.embondsisins = self.df.loc[~self.df['TICKER'].isin(self.riskFreeIssuers), 'ISIN']
+        self.rfbondsisins = self.df.loc[self.df['TICKER'].isin(self.riskFreeIssuers), 'ISIN']
+
+
 
     def fillPositions(self):
         """Fills positions if trade history data is available
@@ -168,17 +193,25 @@ class BondDataModel():
         isin = isinkey[0:12]
         bond = regsToBondName[isin]
         if bidask == 'BID':
-            if bond in SPECIALBONDS:
+            if bond in self.rfbonds:
+                self.blptsAnalytics.get(isin + '@CBBT' + ' Corp', self.bbgPriceRFQuery)
+            elif bond in SPECIALBONDS:
                 self.blptsAnalytics.get(isin + BBGHand + ' Corp', self.bbgPriceSpecialQuery)
             else:
-                self.blptsAnalytics.get(isin + BBGHand + ' Corp', self.bbgPriceQuery)
+                try:
+                    self.blptsAnalytics.get(isin + BBGHand + ' Corp', self.bbgPriceQuery)
+                except:
+                    print 'error asking analytics for ' + bond
         elif bidask == 'RTGACC':
             for item, value in data.iteritems():
                 self.updateCell(bond,bbgToBdmDic[item],value)
         else:#'ANALYTICS' or 'FIRSTPASS'
             data = data.astype(float)
-            for item, value in data.iteritems():
-                self.updateCell(bond,bbgToBdmDic[item],value)
+            try:
+                for item, value in data.iteritems():
+                    self.updateCell(bond,bbgToBdmDic[item],value)
+            except:
+                print data
             if bidask == 'ANALYTICS':
                 self.updateStaticAnalytics(bond)
 
@@ -233,10 +266,21 @@ class BondDataModel():
         self.blptsAnalytics = blpapiwrapper.BLPTS()
         self.streamWatcherAnalytics = StreamWatcher(self, 'ANALYTICS')
         self.blptsAnalytics.register(self.streamWatcherAnalytics)
-        self.bbgstreamBID = blpapiwrapper.BLPStream(list((self.df['ISIN'] + BBGHand + ' Corp').astype(str)), 'BID', 0)
+
+        # self.bbgstreamBID = blpapiwrapper.BLPStream(list((self.df['ISIN'] + BBGHand + ' Corp').astype(str)), 'BID', 0)
+        # self.streamWatcherBID = StreamWatcher(self,'BID')
+        # self.bbgstreamBID.register(self.streamWatcherBID)
+        # self.bbgstreamBID.start()
+        
         self.streamWatcherBID = StreamWatcher(self,'BID')
-        self.bbgstreamBID.register(self.streamWatcherBID)
-        self.bbgstreamBID.start()
+        self.bbgstreamBIDEM = blpapiwrapper.BLPStream(list((self.embondsisins + BBGHand + ' Corp').astype(str)), 'BID', 0)
+        self.bbgstreamBIDEM.register(self.streamWatcherBID)
+        self.bbgstreamBIDEM.start()
+
+        # Streaming rfbonds doesn't work as too many updates
+        rfRequest = blpapiwrapper.BLPTS(list((self.rfbondsisins + '@CBBT' + ' Corp').astype(str)), self.bbgPriceRFQuery)
+        self.RFtimer = RFdata(600, rfRequest, self)
+
         pass
 
     def firstPass(self, priorityBondList=[]):
@@ -254,11 +298,24 @@ class BondDataModel():
         currencyList = {'USD':self.USDswapRate,'CHF':self.CHFswapRate,'EUR':self.EURswapRate,'CNY':self.CNYswapRate}
         self.populateRiskFreeRates(currencyList,'INTSWAP','SAVG')
 
-        emptyLines = list(self.df.index) if priorityBondList == [] else priorityBondList
-        isins = self.df.loc[emptyLines, 'ISIN'] + BBGHand + ' Corp'
+        
+        if priorityBondList == []:
+            emptyLines = list(self.df.index)
+            isins = self.embondsisins + BBGHand + ' Corp'
+        else:
+            emptyLines = priorityBondList
+            isins = self.df.loc[priorityBondList, 'ISIN'] + BBGHand + ' Corp'
         isins = list(isins.astype(str))
         blpts = blpapiwrapper.BLPTS(isins, self.bbgPriceQuery)
         blptsStream = StreamWatcher(self,'FIRSTPASS')
+        blpts.register(blptsStream)
+        blpts.get()
+        blpts.closeSession()
+
+        isins = self.rfbondsisins + ' @CBBT Corp'
+        isins = list(isins.astype(str))
+        blpts = blpapiwrapper.BLPTS(isins, self.bbgPriceRFQuery)
+        blptsStream = StreamWatcher(self, 'FIRSTPASS')
         blpts.register(blptsStream)
         blpts.get()
         blpts.closeSession()

@@ -264,7 +264,7 @@ class BLPTS():
 class BLPStream(threading.Thread):
     """The Subscription Paradigm
     The subscribed data will be sitting in self.output and update automatically. Observers will be notified.
-    floatInterval is the minimum amount of time before updates - sometimes needs to be set at 0 for things to work properly
+    floatInterval is the minimum amount of time before updates - sometimes needs to be set at 0 for things to work properly. In seconds.
     intCorrID is a user defined ID for the request
     It is sometimes safer to ask for each data (for instance BID and ASK) in a separate stream.
     Note that for corporate bonds, a change in the ASK price will still trigger a BID event.
@@ -474,7 +474,7 @@ class ObserverStreamExample(Observer):
 
 
 def streamPatternExample():
-    stream = BLPStream('ESH7 Index', ['BID', 'ASK'], 0, 1)
+    stream = BLPStream('ESZ7 Index', ['BID', 'ASK'], 0, 1)
     #stream=BLPStream('XS1151974877 CORP',['BID','ASK'],0,1) #Note that for a bond only BID gets updated even if ASK moves.
     obs = ObserverStreamExample()
     stream.register(obs)

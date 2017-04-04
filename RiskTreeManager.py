@@ -67,7 +67,7 @@ class RiskTreeManager():
         self.lock = threading.Lock()
         self.cntrymap = countries.set_index('Country code')
         self.cntrymap.rename(columns={'Long name':'LongCountry'}, inplace=True)
-        self.riskFreeIssuers = ['T','DBR','UKT']
+        self.riskFreeIssuers = ['T', 'DBR', 'UKT', 'OBL']
         #RISK TREE
         self.th.positions['EODPrice'] = 0.0
         self.th.positions['EODValue'] = 0.0
@@ -159,7 +159,6 @@ class RiskTreeManager():
         self.th.positionsByISINBook = self.th.positionsByISINBook.join(self.EODPrices, on='Bond')
         self.th.positionsByISINBook['USDQty'] = self.th.positionsByISINBook.apply(lambda row:row['Qty']/ccy.loc[row['CCY'],'2017'],axis=1)
         for issuer in self.riskFreeIssuers:
-            #self.th.positions.loc[self.th.positions['Issuer']==issuer,'Risk'] = 0 # UST HAVE NO CREDIT RISK
             self.th.positionsByISINBook.loc[self.th.positionsByISINBook['Issuer']==issuer,'Risk'] = 0 # UST HAVE NO CREDIT RISK
         self.EODPricesFilled = True
 
@@ -192,10 +191,10 @@ class RiskTreeManager():
         riskFreeIsins = []
         for issuer in self.riskFreeIssuers:
             riskFreeIsins = riskFreeIsins + list(self.th.positionsByISINBook.loc[self.th.positionsByISINBook['Issuer']==issuer,'ISIN'])
-        if len(riskFreeIsins) > 0:
-            riskFreePrices = blpapiwrapper.simpleReferenceDataRequest(dict(zip(riskFreeIsins, map(lambda x:x + '@BGN Corp', riskFreeIsins))), 'PX_MID')
-            for (i,row) in riskFreePrices.iterrows():
-                self.th.positionsByISINBook.loc[self.th.positionsByISINBook['ISIN']==i,'PriceT'] = float(row['PX_MID'])
+        #if len(riskFreeIsins) > 0:
+        #    riskFreePrices = blpapiwrapper.simpleReferenceDataRequest(dict(zip(riskFreeIsins, map(lambda x:x + '@BGN Corp', riskFreeIsins))), 'PX_MID')
+        #    for (i,row) in riskFreePrices.iterrows():
+        #        self.th.positionsByISINBook.loc[self.th.positionsByISINBook['ISIN']==i,'PriceT'] = float(row['PX_MID'])
         self.th.positionsByISINBook.drop(['PRINCIPAL_FACTOR','RISK_MID','EODPrice', 'SAVG', 'IRRisk'], axis=1, inplace=True)
         self.th.positionsByISINBook = self.th.positionsByISINBook.join(self.EODPrices, on='Bond')
         self.th.positionsByISINBook = self.th.positionsByISINBook.join(self.bdm.df['PRINCIPAL_FACTOR'], on='Bond')
@@ -235,10 +234,10 @@ class RiskTreeManager():
             riskFreeIsins = []
             for issuer in self.riskFreeIssuers:
                 riskFreeIsins = riskFreeIsins + list(self.new_trades.loc[self.new_trades['Issuer']==issuer,'ISIN'])
-            if len(riskFreeIsins)>0:
-                riskFreePrices = blpapiwrapper.simpleReferenceDataRequest(dict(zip(riskFreeIsins, map(lambda x:x + '@BGN Corp', riskFreeIsins))), 'PX_MID')
-                for (i,row) in riskFreePrices.iterrows():
-                    self.new_trades.loc[self.new_trades['ISIN']==i,'MID'] = float(row['PX_MID'])#this works because bond name == isin for UST and bunds but it's not very clean
+            #if len(riskFreeIsins)>0:
+            #    riskFreePrices = blpapiwrapper.simpleReferenceDataRequest(dict(zip(riskFreeIsins, map(lambda x:x + '@BGN Corp', riskFreeIsins))), 'PX_MID')
+            #    for (i,row) in riskFreePrices.iterrows():
+            #        self.new_trades.loc[self.new_trades['ISIN']==i,'MID'] = float(row['PX_MID'])#this works because bond name == isin for UST and bunds but it's not very clean
         self.positionDeltas = self.new_trades.groupby(['Book','ISIN'])[['Qty','MK']]
         reclist = []
         nkeylist = []
