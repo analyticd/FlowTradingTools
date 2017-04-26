@@ -306,6 +306,10 @@ class RunsGrid(gridlib.Grid):
 
 
 
+class GenericPricingGrid(gridlib.Grid):
+    def __init__(self):
+        pass
+
 class PricingGrid(gridlib.Grid):
     """PricingGrid class : Class to define the pricing grid
 
@@ -392,6 +396,7 @@ class PricingGrid(gridlib.Grid):
 
         pub.subscribe(self.updateLine, "BOND_PRICE_UPDATE")
         pub.subscribe(self.updatePositions, "POSITION_UPDATE")
+        pub.subscribe(self.updateBGNPrices, "BGN_PRICE_UPDATE")
 
         self.tab = tab
         self.bondList = list(self.tab['Bonds'])
@@ -648,6 +653,7 @@ class PricingGrid(gridlib.Grid):
             bid_size = 0
             ask_size = 0
         self.pricer.table.send_price(bbg_sec_id, bid_price, ask_price, bid_size*1000, ask_size*1000)
+        # self.pricer.prd_table.send_price(bbg_sec_id, bid_price, ask_price, bid_size*1000, ask_size*1000)
         pass
 
     def basisPointShift(self,bond,oldValue,strNewValue):
@@ -738,7 +744,8 @@ class PricingGrid(gridlib.Grid):
                     bid_size = 0
                     ask_size = 0
                 wx.CallAfter(self.dataSentWarning,row)
-                self.pricer.table.send_price(bbg_sec_id, bid_price, ask_price, bid_size*1000, ask_size*1000)
+                self.pricer.prd_table.send_price(bbg_sec_id, bid_price, ask_price, bid_size*1000, ask_size*1000)
+                # self.pricer.table.send_price(bbg_sec_id, bid_price, ask_price, bid_size*1000, ask_size*1000)
 
     def showPopUpMenu(self, event, fromWindowsMenu=False):
         """
@@ -958,6 +965,15 @@ class PricingGrid(gridlib.Grid):
         else:
             return 'N/A'
 
+    def updateBGNPrices(self, message=None):
+        wx.CallAfter(self.updateBGNPricesAction)
+
+    def updateBGNPricesAction(self):
+        j = self.columnList.index('BGN_M')
+        for (i, bond) in enumerate(self.bondList):
+            if bond in self.bdm.df.index:
+                self.SetCellValue(i, j, '{:,.3f}'.format(self.bdm.df.at[bond, 'BGN_MID']))
+
 
 class PricerWindow(wx.Frame):
     '''
@@ -998,10 +1014,11 @@ class PricerWindow(wx.Frame):
 
         pub.subscribe(self.updateTime, "BOND_PRICE_UPDATE")
         pub.subscribe(self.updatePositions, "POSITION_UPDATE")
+        pub.subscribe(self.updateBGNPrices, "BGN_PRICE_UPDATE")
 
         wx.Frame.__init__(self, None, wx.ID_ANY, "Eurobond pricer", size=(1280, 800))
         favicon = wx.Icon(APPPATH+'keyboard.ico', wx.BITMAP_TYPE_ICO, 32,32)
-        wx.Frame.SetIcon(self,favicon)
+        wx.Frame.SetIcon(self, favicon)
 
         self.statusbar = self.CreateStatusBar()
         self.statusbar.SetFieldsCount(4) 
@@ -1009,7 +1026,7 @@ class PricerWindow(wx.Frame):
         self.statusbar.SetStatusText('Last Front update: ' + self.lastUpdateString(),0)
         self.statusbar.SetStatusText('Last rates update: ' + datetime.datetime.now().strftime('%H:%M'),1)
         self.statusbar.SetStatusText('Last Bloomberg update: ' + datetime.datetime.now().strftime('%H:%M'),2)
-        self.statusbar.SetStatusText('Sum: [pre-alpha]',3)
+        self.statusbar.SetStatusText('Sum:',3)
 
         self.Bind(wx.EVT_CLOSE, self.onClose)
         
@@ -1019,15 +1036,16 @@ class PricerWindow(wx.Frame):
 
         if mainframe is None or mainframe.isTrader:
             self.table = inforalgo.SQLTable()
-            self.tabInforalgoControlPanel = inforalgopanel.InforalgoControlPanel(parent = self.notebook, table = self.table, bdm = self.bdm)
+            self.prd_table = inforalgo.SQLTable(inforalgo.PRD_SERVER_CONNECTION_STRING)
+            self.tabInforalgoControlPanel = inforalgopanel.InforalgoControlPanel(parent = self.notebook, table = self.table, prd_table = self.prd_table, bdm = self.bdm)
             self.notebook.AddPage(self.tabInforalgoControlPanel, 'Inforalgo')
             self.tabRuns = wx.Panel(parent=self.notebook)
             self.notebook.AddPage(self.tabRuns, 'Runs')
 
-        defaultColumnList = ['ISIN', 'BOND','BID', 'ASK', 'BID_S','ASK_S', 'YIELD', 'Z-SPREAD', 'DP(1D/1W/1M)','DZ(1D/1W/1M)',
-                             'BENCHMARK', 'RSI14', 'POSITION', 'ACCRUED', 'D2CPN', 'S / M / F', 'COUPON', 'MATURITY', 'SIZE']#removed columns: 'DY(1D/1W/1M)'
+        defaultColumnList = ['ISIN', 'BOND','BID', 'ASK', 'BID_S','ASK_S', 'BGN_M', 'POSITION', 'YIELD', 'Z-SPREAD', 'DP(1D/1W/1M)','DZ(1D/1W/1M)',
+                             'BENCHMARK', 'RSI14', 'ACCRUED', 'D2CPN', 'S / M / F', 'COUPON', 'MATURITY', 'SIZE']#removed columns: 'DY(1D/1W/1M)' POS AFTER RSI14
         ####DEBUG MODE######
-        # grid_labels = ['Africa']# used for testing
+        # grid_labels = ['Africa', 'IRHedges']# used for testing
         ####END DEBUG MODE######
         for label in grid_labels:#
             csv = pandas.read_csv(DEFPATH+label+'Tab.csv')
@@ -1215,8 +1233,12 @@ class PricerWindow(wx.Frame):
     def updateTime(self, message=None):
         """Function to update time whenever there's a BOND_PRICE_UPDATE event.
         """
-        #self.bloomUpdateTime.SetValue('Last updated today at ' + datetime.datetime.now().strftime('%H:%M') + '.')
-        self.statusbar.SetStatusText('Last Bloomberg update: ' + datetime.datetime.now().strftime('%H:%M'),2)
+        #self.statusbar.SetStatusText('Last Bloomberg update: ' + datetime.datetime.now().strftime('%H:%M'),2)
+        pass
+
+    def updateBGNPrices(self, message=None):
+        self.statusbar.SetStatusText('Last BGN update: ' + datetime.datetime.now().strftime('%H:%M'),2)
+        pass
 
 
 if __name__ == "__main__":
