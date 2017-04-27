@@ -652,8 +652,8 @@ class PricingGrid(gridlib.Grid):
         except:
             bid_size = 0
             ask_size = 0
-        self.pricer.table.send_price(bbg_sec_id, bid_price, ask_price, bid_size*1000, ask_size*1000)
-        # self.pricer.prd_table.send_price(bbg_sec_id, bid_price, ask_price, bid_size*1000, ask_size*1000)
+        self.pricer.uat_table.send_price(bbg_sec_id, bid_price, ask_price, bid_size*1000, ask_size*1000)
+        self.pricer.prd_table.send_price(bbg_sec_id, bid_price, ask_price, bid_size*1000, ask_size*1000)
         pass
 
     def basisPointShift(self,bond,oldValue,strNewValue):
@@ -744,8 +744,8 @@ class PricingGrid(gridlib.Grid):
                     bid_size = 0
                     ask_size = 0
                 wx.CallAfter(self.dataSentWarning,row)
+                self.pricer.uat_table.send_price(bbg_sec_id, bid_price, ask_price, bid_size*1000, ask_size*1000)
                 self.pricer.prd_table.send_price(bbg_sec_id, bid_price, ask_price, bid_size*1000, ask_size*1000)
-                # self.pricer.table.send_price(bbg_sec_id, bid_price, ask_price, bid_size*1000, ask_size*1000)
 
     def showPopUpMenu(self, event, fromWindowsMenu=False):
         """
@@ -1035,9 +1035,9 @@ class PricerWindow(wx.Frame):
         self.notebook = wx.Notebook(notebookPanel)
 
         if mainframe is None or mainframe.isTrader:
-            self.table = inforalgo.SQLTable()
+            self.uat_table = inforalgo.SQLTable(inforalgo.UAT_SERVER_CONNECTION_STRING)
             self.prd_table = inforalgo.SQLTable(inforalgo.PRD_SERVER_CONNECTION_STRING)
-            self.tabInforalgoControlPanel = inforalgopanel.InforalgoControlPanel(parent = self.notebook, table = self.table, prd_table = self.prd_table, bdm = self.bdm)
+            self.tabInforalgoControlPanel = inforalgopanel.InforalgoControlPanel(parent = self.notebook, uat_table = self.uat_table, prd_table = self.prd_table, bdm = self.bdm)
             self.notebook.AddPage(self.tabInforalgoControlPanel, 'Inforalgo')
             self.tabRuns = wx.Panel(parent=self.notebook)
             self.notebook.AddPage(self.tabRuns, 'Runs')

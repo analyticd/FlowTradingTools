@@ -23,11 +23,11 @@ from wx.lib.scrolledpanel import ScrolledPanel
 #         return None
 
 class InforalgoControlPanel(ScrolledPanel):
-    def __init__(self, parent, table = None, prd_table = None, bdm = None):
+    def __init__(self, parent, uat_table = None, prd_table = None, bdm = None):
         ScrolledPanel.__init__(self, parent)
         self.SetupScrolling(scroll_x=False, scroll_y=True)
         self.parent = parent
-        self.table = table
+        self.uat_table = uat_table
         self.prd_table = prd_table
         self.bdm = bdm
         self.topSizer = wx.BoxSizer(wx.VERTICAL)
@@ -157,31 +157,37 @@ class InforalgoControlPanel(ScrolledPanel):
         ask_price = float(self.inputGrid.GetCellValue(0,2))
         bid_size = float(self.inputGrid.GetCellValue(0,3))
         ask_size = float(self.inputGrid.GetCellValue(0,4))
-        try:
-            self.table.insert_record(isin, bid_price, ask_price, bid_size*1000, ask_size*1000)
-        except:
-            print 'Failed to insert price for ' + isin
-        try:
-            self.prd_table.insert_record(isin, bid_price, ask_price, bid_size*1000, ask_size*1000)
-        except:
-            print 'PRD failed to insert price for ' + isin
+        self.uat_table.insert_record(isin, bid_price, ask_price, bid_size*1000, ask_size*1000)
+        print 'Inserted ' + isin
+        self.prd_table.insert_record(isin, bid_price, ask_price, bid_size*1000, ask_size*1000)
+        print 'PRD inserted ' + isin
+        # try:
+        #     self.uat_table.insert_record(isin, bid_price, ask_price, bid_size*1000, ask_size*1000)
+        #     print 'Inserted ' + isin
+        # except:
+        #     print 'Failed to insert price for ' + isin
+        # try:
+        #     self.prd_table.insert_record(isin, bid_price, ask_price, bid_size*1000, ask_size*1000)
+        #     print 'PRD inserted ' + isin
+        # except:
+        #     print 'PRD failed to insert price for ' + isin
         pass
 
     def onIsinDeleteButton(self, event):
-        self.table.delete_record(self.isinDeleteCtrl.GetValue())
+        self.uat_table.delete_record(self.isinDeleteCtrl.GetValue())
         self.prd_table.delete_record(self.isinDeleteCtrl.GetValue())
         self.onRefreshButton(event)
         pass
 
-    def onAddPricerRecordsButton(self,event):
-        df = self.table.read_table()
+    def onAddPricerRecordsButton(self, event):
+        df = self.uat_table.read_table()
         df_prd = self.prd_table.read_table()
         existing_isins = list(df['bbrgSec6id'])
-        existing_isins_prd = list(df['bbrgSec6id'])
+        existing_isins_prd = list(df_prd['bbrgSec6id'])
         for (i,bonddata) in self.bdm.df.iterrows():
             if bonddata['ISIN'] not in existing_isins:
                 try:
-                    self.table.insert_record(bonddata['ISIN'], bonddata['BID'], bonddata['ASK'], int(bonddata['BID_SIZE']), int(bonddata['ASK_SIZE']))
+                    self.uat_table.insert_record(bonddata['ISIN'], bonddata['BID'], bonddata['ASK'], int(bonddata['BID_SIZE']), int(bonddata['ASK_SIZE']))
                 except:
                     print 'Error adding ' + bonddata['ISIN']
         for (i,bonddata) in self.bdm.df.iterrows():
@@ -194,13 +200,13 @@ class InforalgoControlPanel(ScrolledPanel):
 
     def onDeletePricerRecordsButton(self,event):
         for (i,bonddata) in self.bdm.df.iterrows():
-            self.table.delete_record(bonddata['ISIN'])
+            self.uat_table.delete_record(bonddata['ISIN'])
             self.prd_table.delete_record(bonddata['ISIN'])
         self.onRefreshButton(event)
 
     def onDeleteAllRecordsButton(self,event):
         if self.isinDeleteAllCtrl.GetValue().encode('hex') == '4963426353':#decode this to find out password
-            self.table.empty_table()
+            self.uat_table.empty_table()
             self.prd_table.empty_table()
         self.onRefreshButton(event)
 
@@ -208,7 +214,7 @@ class InforalgoControlPanel(ScrolledPanel):
         for (i,bonddata) in self.bdm.df.iterrows():
             if bonddata['BID_SIZE'] != 0 or bonddata['ASK_SIZE'] != 0:
                 try:
-                    self.table.send_price(bonddata['ISIN'], bonddata['BID'], bonddata['ASK'], int(float(bonddata['BID_SIZE'])), int(float(bonddata['ASK_SIZE'])))
+                    self.uat_table.send_price(bonddata['ISIN'], bonddata['BID'], bonddata['ASK'], int(float(bonddata['BID_SIZE'])), int(float(bonddata['ASK_SIZE'])))
                 except:
                     print 'Failed to send price for ' + bonddata['ISIN']
                 try:
@@ -221,13 +227,13 @@ class InforalgoControlPanel(ScrolledPanel):
         '''
         This will only push data if it's in the Inforalgo table AND in the Pricer.
         '''
-        df = self.table.read_table()
+        df = self.uat_table.read_table()
         df_prd = self.prd_table.read_table()
         bdm_isins = list(self.bdm.df['ISIN'])
         for (i,row) in df.iterrows():
             if row['bbrgSec6id'] in bdm_isins:
                 try:
-                    self.table.send_price(row['bbrgSec6id'], float(row['bbrgVala']), float(row['bbrgValc']), int(float(row['bbrgValb'])), int(float(row['bbrgVald'])))
+                    self.uat_table.send_price(row['bbrgSec6id'], float(row['bbrgVala']), float(row['bbrgValc']), int(float(row['bbrgValb'])), int(float(row['bbrgVald'])))
                 except:
                     print 'Failed to send price for ' + row['bbrgSec6id']
         for (i,row) in df_prd.iterrows():
@@ -258,7 +264,7 @@ class InforalgoControlPanel(ScrolledPanel):
 
     def onRefreshButton(self, event):
         self.inforalgoGrid.ClearGrid()
-        df = self.table.read_table()
+        df = self.uat_table.read_table()
         if df.shape[0] > self.inforalgoGridRows:
             self.inforalgoGrid.AppendRows(df.shape[0]-self.inforalgoGridRows)
             self.inforalgoGridRows = df.shape[0]
@@ -280,9 +286,9 @@ class InforalgoControlPanel(ScrolledPanel):
 class InforalgoControlFrame(wx.Frame):
     def __init__(self):
         wx.Frame.__init__(self, None, wx.ID_ANY, "Inforalgo control panel",size=(1280,850))
-        table = inforalgo.SQLTable()
+        uat_table = inforalgo.SQLTable(inforalgo.UAT_SERVER_CONNECTION_STRING)
         prd_table = inforalgo.SQLTable(inforalgo.PRD_SERVER_CONNECTION_STRING)
-        self.panel = InforalgoControlPanel(self, table=table, prd_table=prd_table)
+        self.panel = InforalgoControlPanel(self, table=uat_table, prd_table=prd_table)
 
 
 if __name__ == "__main__":
