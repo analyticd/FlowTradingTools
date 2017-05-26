@@ -190,61 +190,35 @@ class FullMarketAxessData():
 
 
 
-class _deprecated_MAData():
-    def __init__(self,filename):
-        ma=pandas.read_csv(MAPATH+filename,thousands=',')
-        self.df=ma[['Action','Size (000\'s)','Currency','Security','Identifier','Client','Client Trader','Date']].copy()
-        self.df.rename(columns={'Size (000\'s)':'AbsQty','Currency':'CCY','Client':'MACounterparty','Identifier':'ISIN'}, inplace = True)
-        self.df=self.df[self.df['CCY'].isin(['USD','EUR','CHF','GBP'])]
-        self.df['AbsQty']=self.df['AbsQty']/1000.
-        self.df['Qty']=self.df['AbsQty']
-        self.df.loc[self.df['Action']=='Offer','Qty']=-1*self.df['AbsQty']
-        self.df['Qty']=self.df['Qty']
-        self.df=self.df.join(allisins,on='ISIN')
-        self.df['USDQty']=self.df.apply(lambda row:row['Qty']/ccy.loc[row['CCY'],'2016'],axis=1)
-        self.df=self.df.join(bonds[['TICKER','CNTRY_OF_RISK']],on='Bond')
+class FullBBGALLQData():
+
+    def __init__(self, rebuild=False, forceLastDay=False):
+        self.savepath = MAPATH+'ma_full.csvz'
+        if rebuild or (not os.path.exists(self.savepath)):
+            self.load_files_full()
+        elif datetime.datetime.fromtimestamp(os.path.getmtime(self.savepath)).date()<datetime.datetime.today().date() or forceLastDay:
+            self.load_files()
+        else:
+            self.df = pandas.read_csv(self.savepath, parse_dates=['Inquiry Timestamp'], index_col=0, compression='bz2', dtype=IMPORT_DIC)#, usecols=USECOLS)
+        self.df = self.df[['Status','Client','CLT Trader','Bid/Offer','ISIN','Inquiry Timestamp','Currency','Local Inquiry Volume','Product']]
+        self.df = self.df[self.df['Product']=='Emerging Markets'].copy()
+        self.df.rename(columns = {'Local Inquiry Volume':'AbsQty', 'Currency':'CCY','Inquiry Timestamp':'Date'}, inplace = True)
+        self.df = self.df[self.df['CCY'].isin(['USD','EUR','CHF','GBP'])]
+        self.df = self.df.join(allisins, on = 'ISIN')
+        ma_counterparties = counterparties[counterparties['MAName'].notnull()]
+        ma_counterparties.set_index('MAName', inplace=True)
+        self.df = self.df.join(ma_counterparties['Counterparty'],on='Client')
+        self.df = self.df.join(ccy['2016'],on='CCY')
+        #self.df['AbsUSDQty'] = self.df.apply(lambda row:row['AbsQty']/ccy.loc[row['CCY'],'2016'],axis=1) ##TOO SLOW
+        self.df['AbsUSDQty'] = self.df['AbsQty'] / self.df['2016']
+        del self.df['2016']
+        self.df['USDQty'] = self.df['AbsUSDQty']
+        self.df.loc[self.df['Bid/Offer']=='Offer','USDQty'] = -self.df.loc[self.df['Bid/Offer']=='Offer','USDQty']
+        self.df = self.df.join(bonds[['TICKER','CNTRY_OF_RISK']],on='Bond')
         self.df.rename(columns={'TICKER':'Issuer','CNTRY_OF_RISK':'Country'},inplace=True)
-        self.df=self.df.join(countries.set_index('Country code',verify_integrity=True)['Region'],on='Country')
-        pass
-
-    def total_report(self):
-        grp=self.df.groupby('CCY')
-        print grp[['Qty','AbsQty']].sum().applymap(lambda y:'{:,.2f}'.format(y))
-        pass
-
-    def client_report(self):
-        grp1=self.df.groupby('MACounterparty')
-        sg=grp1.sum()
-        out=sg[(sg['USDQty']>=2) | (sg['USDQty']<-2)]
-        print out['USDQty'].apply(lambda y:'{:,.1f}'.format(y))
-        #print ''
-        #grp2=self.df.groupby(['MACounterparty','Country'])
-        #print grp2[['USDQty']].sum().applymap(lambda y:'{:,.2f}'.format(y))
-        pass
-
-    def region_report(self):
-        grp1=self.df.groupby('Region')
-        print grp1[['USDQty']].sum().loc[['Africa','CEE','CIS']].applymap(lambda y:'{:,.1f}'.format(y))
-        print ''
-        grp2=self.df.groupby(['Region','Country'])
-        print grp2[['USDQty']].sum().loc[['Africa','CEE','CIS']].applymap(lambda y:'{:,.1f}'.format(y))
-        pass
-
-    def full_report(self):
-        print '=============================================='
-        print 'Total enquiries:'
-        print '=============================================='
-        self.total_report()
-        print ''
-        print '=============================================='
-        print 'Enquiries by region (only accurate for EMEA):'
-        print '=============================================='
-        self.region_report()
-        print ''
-        print '=============================================='
-        print 'Enquiries by client (showing >$2mm net):'
-        print '=============================================='
-        self.client_report()
-        print ''
-        pass
+        self.df = self.df.join(countries.set_index('Country code',verify_integrity=True)['Region'],on='Country')
+        self.df['DateDT'] = self.df['Date']
+        #self.df['DateDT'] = pandas.to_datetime(self.df['Date'],format='%d/%m/%Y %H:%M:%S')
+        self.df['Date'] = self.df['DateDT'].apply(lambda x:x.date())
+        #del self.df['Client'] - WE NEED THIS SO WE CAN LOOK FOR NAN
 

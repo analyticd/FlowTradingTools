@@ -157,10 +157,16 @@ class InforalgoControlPanel(ScrolledPanel):
         ask_price = float(self.inputGrid.GetCellValue(0,2))
         bid_size = float(self.inputGrid.GetCellValue(0,3))
         ask_size = float(self.inputGrid.GetCellValue(0,4))
-        self.uat_table.insert_record(isin, bid_price, ask_price, bid_size*1000, ask_size*1000)
-        print 'Inserted ' + isin
-        self.prd_table.insert_record(isin, bid_price, ask_price, bid_size*1000, ask_size*1000)
-        print 'PRD inserted ' + isin
+        try:
+            self.uat_table.insert_record(isin, bid_price, ask_price, bid_size*1000, ask_size*1000)
+            print 'UAT inserted ' + isin
+        except:
+            print 'UAT possible error inserting ' + isin
+        try:            
+            self.prd_table.insert_record(isin, bid_price, ask_price, bid_size*1000, ask_size*1000)
+            print 'PRD inserted ' + isin
+        except:
+            print 'PRD possible error inserting ' + isin
         # try:
         #     self.uat_table.insert_record(isin, bid_price, ask_price, bid_size*1000, ask_size*1000)
         #     print 'Inserted ' + isin
@@ -288,7 +294,7 @@ class InforalgoControlFrame(wx.Frame):
         wx.Frame.__init__(self, None, wx.ID_ANY, "Inforalgo control panel",size=(1280,850))
         uat_table = inforalgo.SQLTable(inforalgo.UAT_SERVER_CONNECTION_STRING)
         prd_table = inforalgo.SQLTable(inforalgo.PRD_SERVER_CONNECTION_STRING)
-        self.panel = InforalgoControlPanel(self, table=uat_table, prd_table=prd_table)
+        self.panel = InforalgoControlPanel(self, uat_table=uat_table, prd_table=prd_table)
 
 
 if __name__ == "__main__":

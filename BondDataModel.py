@@ -25,7 +25,7 @@ import os
 import time
 
 from SwapHistory import SwapHistory
-from StaticDataImport import ccy, countries, bonds, TEMPPATH, bonduniverseexclusionsList, frontToEmail, SPECIALBONDS, BBGHand, regsToBondName, bbgToBdmDic
+from StaticDataImport import ccy, countries, bonds, TEMPPATH, bonduniverseexclusionsList, frontToEmail, SPECIALBONDS, SINKABLEBONDS, BBGHand, regsToBondName, bbgToBdmDic
 
 class MessageContainer():
     def __init__(self,data):
@@ -158,8 +158,10 @@ class BondDataModel():
         self.bondList = []
         self.bbgPriceQuery = ['BID', 'ASK', 'YLD_CNV_BID', 'YLD_CNV_ASK', 'Z_SPRD_BID', 'Z_SPRD_ASK','RSI_14D', 'BID_SIZE', 'ASK_SIZE']
         self.bbgPriceSpecialQuery = ['BID', 'ASK', 'YLD_CNV_BID', 'YLD_CNV_ASK', 'OAS_SPREAD_BID', 'OAS_SPREAD_ASK','RSI_14D', 'BID_SIZE', 'ASK_SIZE']
+        self.bbgPriceSinkableQuery = ['BID', 'ASK', 'YLD_CNV_BID', 'YLD_CNV_ASK', 'RSI_14D', 'BID_SIZE', 'ASK_SIZE']
         self.riskFreeIssuers = ['T', 'DBR', 'UKT', 'OBL']
         self.bbgPriceRFQuery = ['BID', 'ASK', 'BID_YIELD', 'ASK_YIELD']
+        self.bbgSinkRequest = blpapiwrapper.BLPTS()
         pass
 
     def reduceUniverse(self):
@@ -216,6 +218,13 @@ class BondDataModel():
                     self.updateCell(bond,bbgToBdmDic[item],value)
             except:
                 print data
+            if bond in SINKABLEBONDS:
+                self.bbgSinkRequest.fillRequest(isin + ' Corp', ['YAS_ZSPREAD'], strOverrideField='YAS_BOND_PX', strOverrideValue=data['BID'])
+                self.bbgSinkRequest.get()
+                self.updateCell(bond, 'ZB', float(self.bbgSinkRequest.output.values[0,0]))
+                self.bbgSinkRequest.fillRequest(isin + ' Corp', ['YAS_ZSPREAD'], strOverrideField='YAS_BOND_PX', strOverrideValue=data['ASK'])
+                self.bbgSinkRequest.get()                
+                self.updateCell(bond, 'ZA', float(self.bbgSinkRequest.output.values[0,0]))
             if bidask == 'ANALYTICS':
                 self.updateStaticAnalytics(bond)
 
@@ -329,8 +338,8 @@ class BondDataModel():
         """
         self.blptsAnalytics.closeSession()
         self.blptsAnalytics = None
-        self.bbgstreamBID.closeSubscription()
-        self.bbgstreamBID = None
+        self.bbgstreamBIDEM.closeSubscription()
+        self.bbgstreamBIDEM = None
         self.streamWatcherBID = None
         self.streamWatcherAnalytics = None
         self.firstPass()
