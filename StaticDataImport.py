@@ -20,7 +20,9 @@ TEMPPATH = APPPATH + 'temp\\'
 DEFPATH = APPPATH + 'definitions\\'
 THPATH = APPPATH + 'TradeH~1\\'
 MAPATH = APPPATH + 'ma_logs\\'
+BBGPATH = APPPATH + 'bbg_logs\\'
 PHPATH = APPPATH + 'PriceH~1\\'
+STAGINGPATH = 'Z:\\GlobalMarkets\\Credit Trading\\PROD\\Staging\\'
 
 # User definitions
 gs = read_csv(DEFPATH+'genericSettings.csv')

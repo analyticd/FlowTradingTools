@@ -3,9 +3,9 @@ import os
 import datetime
 import matplotlib
 import matplotlib.pyplot as plt
-from StaticDataImport import MYPATH, TEMPPATH, THPATH, DEFPATH, UATPATH, ccy, countries, bonds, LDNFLOWBOOKS, isinsregs, isins144a, allisins, MAPATH, counterparties
+from StaticDataImport import MYPATH, TEMPPATH, THPATH, DEFPATH, UATPATH, ccy, countries, bonds, LDNFLOWBOOKS, isinsregs, isins144a, allisins, MAPATH, counterparties, BBGPATH, STAGINGPATH
 import blpapiwrapper
-
+from shutil import copy2
 
 BASE_COLUMNS = [u'Status', u'Client', u'Dealer', u'Bid/Offer', u'Issuer', u'Ticker',
 u'COUPON', u'Maturity', u'Level', u'Adj. Level', u'Benchmark', u'Price',
@@ -39,6 +39,19 @@ USECOLS = [u'Status',u'Client',u'CLT Trader',u'Bid/Offer',u'ISIN',u'Inquiry Time
 #USECOLSID = []
 #for c in USECOLS:
 
+BASE_COLUMNS_BBG = [u'Time', u'Security', u'DlrSide', u'Qty (M)', u'Price (Dec)', u'Price',
+       u'Status', u'Cover', u'Cover 2', u'Customer', u'Yield', u'ISIN',
+       u'BrkrName', u'Alloc Status', u'Trade Dt', u'Ord/Inq', u'Platform',
+       u'App', u'UserName', u'Dlr Alias', u'Brkr', u'Seq#']
+
+IMPORT_DIC_BBG = dict(zip(BASE_COLUMNS_BBG,[object for i in BASE_COLUMNS_BBG]))
+IMPORT_DIC_BBG[u'Qty (M)'] = pandas.np.float64
+IMPORT_DIC_BBG[u'Price (Dec)'] = pandas.np.float64
+IMPORT_DIC_BBG[u'Price'] = pandas.np.float64
+#IMPORT_DIC_BBG[u'Cover'] = pandas.np.float64
+#IMPORT_DIC_BBG[u'Cover 2'] = pandas.np.float64
+IMPORT_DIC_BBG[u'Seq#'] = pandas.np.float64
+
 
 class FullMarketAxessData():
 
@@ -49,19 +62,20 @@ class FullMarketAxessData():
         elif datetime.datetime.fromtimestamp(os.path.getmtime(self.savepath)).date()<datetime.datetime.today().date() or forceLastDay:
             self.load_files()
         else:
-            self.df = pandas.read_csv(self.savepath, parse_dates=['Inquiry Timestamp'], index_col=0, compression='bz2', dtype=IMPORT_DIC)#, usecols=USECOLS)
+            self.df = pandas.read_csv(self.savepath, parse_dates=['Inquiry Timestamp'], index_col=0, compression='bz2', dtype=IMPORT_DIC, low_memory=False)#, usecols=USECOLS)
         self.df = self.df[['Status','Client','CLT Trader','Bid/Offer','ISIN','Inquiry Timestamp','Currency','Local Inquiry Volume','Product']]
         self.df = self.df[self.df['Product']=='Emerging Markets'].copy()
+        del self.df['Product']
         self.df.rename(columns = {'Local Inquiry Volume':'AbsQty', 'Currency':'CCY','Inquiry Timestamp':'Date'}, inplace = True)
         self.df = self.df[self.df['CCY'].isin(['USD','EUR','CHF','GBP'])]
         self.df = self.df.join(allisins, on = 'ISIN')
         ma_counterparties = counterparties[counterparties['MAName'].notnull()]
         ma_counterparties.set_index('MAName', inplace=True)
         self.df = self.df.join(ma_counterparties['Counterparty'],on='Client')
-        self.df = self.df.join(ccy['2016'],on='CCY')
+        self.df = self.df.join(ccy['2017'],on='CCY')
         #self.df['AbsUSDQty'] = self.df.apply(lambda row:row['AbsQty']/ccy.loc[row['CCY'],'2016'],axis=1) ##TOO SLOW
-        self.df['AbsUSDQty'] = self.df['AbsQty'] / self.df['2016']
-        del self.df['2016']
+        self.df['AbsUSDQty'] = self.df['AbsQty'] / self.df['2017']
+        del self.df['2017']
         self.df['USDQty'] = self.df['AbsUSDQty']
         self.df.loc[self.df['Bid/Offer']=='Offer','USDQty'] = -self.df.loc[self.df['Bid/Offer']=='Offer','USDQty']
         self.df = self.df.join(bonds[['TICKER','CNTRY_OF_RISK']],on='Bond')
@@ -193,32 +207,73 @@ class FullMarketAxessData():
 class FullBBGALLQData():
 
     def __init__(self, rebuild=False, forceLastDay=False):
-        self.savepath = MAPATH+'ma_full.csvz'
+        self.savepath = BBGPATH+'bbg_full.csvz'
         if rebuild or (not os.path.exists(self.savepath)):
             self.load_files_full()
         elif datetime.datetime.fromtimestamp(os.path.getmtime(self.savepath)).date()<datetime.datetime.today().date() or forceLastDay:
             self.load_files()
         else:
-            self.df = pandas.read_csv(self.savepath, parse_dates=['Inquiry Timestamp'], index_col=0, compression='bz2', dtype=IMPORT_DIC)#, usecols=USECOLS)
-        self.df = self.df[['Status','Client','CLT Trader','Bid/Offer','ISIN','Inquiry Timestamp','Currency','Local Inquiry Volume','Product']]
-        self.df = self.df[self.df['Product']=='Emerging Markets'].copy()
-        self.df.rename(columns = {'Local Inquiry Volume':'AbsQty', 'Currency':'CCY','Inquiry Timestamp':'Date'}, inplace = True)
-        self.df = self.df[self.df['CCY'].isin(['USD','EUR','CHF','GBP'])]
+            self.df = pandas.read_csv(self.savepath, index_col=0, compression='bz2', dtype=IMPORT_DIC_BBG)#, usecols=USECOLS)
+        
+
+        self.df = self.df[['Time','DlrSide','Qty (M)','Status','Customer', 'ISIN','Trade Dt','UserName']]
+        self.df = self.df.copy()
+        self.df['strDate'] = self.df['Trade Dt'] + ' ' + self.df['Time']
+        # Convert NY time to UK time - adding 5h which is not always correct (DST)
+        self.df['DateDT'] = pandas.to_datetime(self.df['strDate']) + pandas.Timedelta(hours=5)
+        self.df['Date'] = self.df['DateDT'].apply(lambda x: x.date())
+        # self.df['Time'] =  self.df['DateDT'].dt.strftime('%X')
+        del self.df['strDate']
+        del self.df['Time']
+        del self.df['Trade Dt']
+        #
         self.df = self.df.join(allisins, on = 'ISIN')
-        ma_counterparties = counterparties[counterparties['MAName'].notnull()]
-        ma_counterparties.set_index('MAName', inplace=True)
-        self.df = self.df.join(ma_counterparties['Counterparty'],on='Client')
-        self.df = self.df.join(ccy['2016'],on='CCY')
+        self.df = self.df.join(bonds['CRNCY'], on = 'Bond')
+        self.df.rename(columns = {'Qty (M)':'AbsQty', 'Customer': 'Client', 'CRNCY': 'CCY', 'DlrSide': 'Bid/Offer', 'UserName': 'CLT Trader'}, inplace = True)
+        bbg_counterparties = counterparties[counterparties['BBGName'].notnull()]
+        bbg_counterparties.set_index('BBGName', inplace=True)
+        self.df = self.df.join(bbg_counterparties['Counterparty'], on='Client')
+        self.df = self.df.join(ccy['2017'], on='CCY')
         #self.df['AbsUSDQty'] = self.df.apply(lambda row:row['AbsQty']/ccy.loc[row['CCY'],'2016'],axis=1) ##TOO SLOW
-        self.df['AbsUSDQty'] = self.df['AbsQty'] / self.df['2016']
-        del self.df['2016']
+        self.df['AbsUSDQty'] = self.df['AbsQty'] / self.df['2017']
+        del self.df['2017']
         self.df['USDQty'] = self.df['AbsUSDQty']
-        self.df.loc[self.df['Bid/Offer']=='Offer','USDQty'] = -self.df.loc[self.df['Bid/Offer']=='Offer','USDQty']
+        self.df.loc[self.df['Bid/Offer']=='S','USDQty'] = -self.df.loc[self.df['Bid/Offer']=='S','USDQty']
         self.df = self.df.join(bonds[['TICKER','CNTRY_OF_RISK']],on='Bond')
         self.df.rename(columns={'TICKER':'Issuer','CNTRY_OF_RISK':'Country'},inplace=True)
         self.df = self.df.join(countries.set_index('Country code',verify_integrity=True)['Region'],on='Country')
-        self.df['DateDT'] = self.df['Date']
-        #self.df['DateDT'] = pandas.to_datetime(self.df['Date'],format='%d/%m/%Y %H:%M:%S')
-        self.df['Date'] = self.df['DateDT'].apply(lambda x:x.date())
-        #del self.df['Client'] - WE NEED THIS SO WE CAN LOOK FOR NAN
+
+    def load_files_full(self):
+        self.df = pandas.DataFrame(columns = BASE_COLUMNS_BBG)
+        start_date = datetime.datetime(2017,5,7)
+        end_date = datetime.datetime.today()
+        day_count = (end_date - start_date).days + 1 # to include today
+        #last_date='null'
+        for single_date in (start_date + datetime.timedelta(n) for n in range(day_count)):
+            try:
+                single_date_str = single_date.strftime('%Y%m%d')
+                daily = pandas.read_csv(BBGPATH+'ICBCSFTP-'+single_date_str)
+                self.df = self.df.append(daily,ignore_index=True)
+                #last_date_str = single_date_str
+            except IOError as e:
+                pass
+        #self.df.to_csv(MAPATH+'ma_full_'+last_date_str+'.csv')
+        self.df.to_csv(self.savepath, compression = 'bz2')
+
+    def load_files(self):
+        self.df = pandas.read_csv(self.savepath, index_col=0, compression = 'bz2', dtype=IMPORT_DIC_BBG)
+        last_existing_date = datetime.datetime.strptime(self.df.iloc[-1]['Trade Dt'], '%m/%d/%Y').date()
+        start_date = last_existing_date + datetime.timedelta(1)
+        end_date = datetime.date.today()
+        day_count = (end_date - start_date).days + 1 # to include today
+        for single_date in (start_date + datetime.timedelta(n) for n in range(day_count)):
+            try:
+                single_date_str = single_date.strftime('%Y%m%d')
+                copy2(STAGINGPATH+'ICBCSFTP-'+single_date_str, BBGPATH)
+                daily = pandas.read_csv(BBGPATH+'ICBCSFTP-'+single_date_str)
+                self.df = self.df.append(daily,ignore_index=True)
+            except IOError as e:
+                pass
+        self.df.to_csv(self.savepath, compression = 'bz2')
+        pass
 

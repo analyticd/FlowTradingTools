@@ -27,11 +27,11 @@ import time
 import os
 import cPickle as pickle
 import bz2
-from StaticDataImport import MYPATH, TEMPPATH, THPATH, DEFPATH, UATPATH, ccy, countries, bonds, LDNFLOWBOOKS, isinsregs, isins144a, allisins, counterparties
+from StaticDataImport import MYPATH, TEMPPATH, THPATH, DEFPATH, UATPATH, ccy, countries, bonds, LDNFLOWBOOKS, isinsregs, isins144a, allisins, counterparties, STAGINGPATH
 
 #Define globals
 #MYPATH='O:\\Global~2\\Credit~2\\Credit~1\\FlowTr~1\\Tools\\'
-YTDPATH = 'Z:\\GlobalMarkets\\Credit Trading\\PROD\\Staging\\'
+YTDPATH = STAGINGPATH#'Z:\\GlobalMarkets\\Credit Trading\\PROD\\Staging\\'
 UKSALES = ['COVINOA','TROSSEW','FOXMARK','OXLEYM','SPACHIH','SCRIVENJ','DRABBLES','OZELN','COXLAUR','OLAWOYIM','STIRLINE','LEAMYT','AYRAPETA','SIRIWAJ','DEBEERJ','HOUSERM','CROFTJIM','BYRNEJUL', 'ZOHIDOVG', 'COLQUHI', 'FOLMOMA', 'FROSTG','GOLDBERS','GUESNETP','HARLINGV','MAGALHAB','RILEYP','TREMOCOA','KHUSSAIE', 'PRESTESJ']
 NYSALES = ['WILCOCKT','MURPHYG','OHIGGINJ','MELTONED','BIRKHOLD','LIEBERDE','LOPEZLEY','LOPSROG','RADONJIC','SOARESMA','OWOOKWAK']
 ASIASALES = ['CHIAWSH','LICHENC']

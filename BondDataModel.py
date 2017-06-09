@@ -23,9 +23,10 @@ import threading
 import datetime
 import os
 import time
+from win32api import GetUserName
 
 from SwapHistory import SwapHistory
-from StaticDataImport import ccy, countries, bonds, TEMPPATH, bonduniverseexclusionsList, frontToEmail, SPECIALBONDS, SINKABLEBONDS, BBGHand, regsToBondName, bbgToBdmDic
+from StaticDataImport import ccy, countries, bonds, TEMPPATH, bonduniverseexclusionsList, frontToEmail, SPECIALBONDS, SINKABLEBONDS, BBGHand, regsToBondName, bbgToBdmDic, PHPATH
 
 class MessageContainer():
     def __init__(self,data):
@@ -71,6 +72,24 @@ class BDMdata(wx.Timer):
         self.bdm.df['BGN_MID'] = out.astype(float)
         self.bdm.lock.release()
         pub.sendMessage('BGN_PRICE_UPDATE', message=MessageContainer('empty'))
+
+
+class BDMEODsave(wx.Timer):
+    def __init__(self, bdm):
+        wx.Timer.__init__(self)
+        self.bdm = bdm
+        self.Bind(wx.EVT_TIMER, self.saveFile)
+        now = datetime.datetime.now()
+        fivepm = now.replace(hour=17, minute = 0, second = 0)
+        now_to_five_pm = (fivepm - now).total_seconds()
+        self.Start(1000*now_to_five_pm, oneShot = True)
+
+    def saveFile(self, event):
+        self.bdm.firstPass()
+        out = self.bdm.df[['ISIN', 'BOND', 'MID', 'YLDM', 'ZM', 'BGN_MID']].copy()
+        out.set_index('ISIN', inplace=True)
+        filename = 'bdm-' + datetime.datetime.today().strftime('%Y-%m-%d') + '-' + GetUserName() + '.csv'
+        out.to_csv(PHPATH + filename)
 
 
 class BondDataModel():
@@ -285,6 +304,7 @@ class BondDataModel():
         rfRequest = blpapiwrapper.BLPTS(list((self.rfbondsisins + '@CBBT' + ' Corp').astype(str)), self.bbgPriceRFQuery)
         self.RFtimer = RFdata(600, rfRequest, self)
         self.BDMdata = BDMdata(300, self)
+        self.BDMEODsave = BDMEODsave(self)
 
     def firstPass(self, priorityBondList=[]):
         """Loads initial data upon start up. After downloading data on first pass, function will check for bonds
