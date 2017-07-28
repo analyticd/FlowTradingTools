@@ -2,7 +2,7 @@
 Pricer Window - Launches the pricer.
 
 Written by Alexandre Almosni   alexandre.almosni@gmail.com
-(C) 2015-2016 Alexandre Almosni
+(C) 2015-2017 Alexandre Almosni
 Released under Apache 2.0 license. More info at http://www.apache.org/licenses/LICENSE-2.0
 
 **Steps to disable tabs for debugging:
@@ -148,11 +148,11 @@ class RunsGrid(gridlib.Grid):
         2) True/ False (for autoforwarding)
         Fonts in blue represents fields that can be changed by the user.
         '''
-        self.df = pandas.read_csv(DEFPATH+'runs.csv',index_col=0)
+        self.df = pandas.read_csv(DEFPATH+'runs.csv', index_col=0)
         maxCol = max (self.df.iloc[i].count() for i in range(len(self.df.index)))        
         #Sets columns
         for (j, header) in enumerate(self.df.columns):
-            self.SetColLabelValue(j+1, header)
+            self.SetColLabelValue(j + 1, header)
         #Sets row
         for (k, header) in enumerate(self.df.index): #K=Row
             self.SetRowLabelValue(k, header)    #Bond Labels
@@ -164,29 +164,29 @@ class RunsGrid(gridlib.Grid):
                 if pandas.isnull(self.df.iloc[k,i]):
                     value = ''
                 else:
-                    if (i!=1) and (i!=2):
-                        self.SetReadOnly(k,i+1, True)
+                    if (i != 1) and (i != 2):
+                        self.SetReadOnly(k, i + 1, True)
                     else:
-                        self.SetReadOnly(k,i+1, False)
-                        self.SetCellTextColour(k, i+1, wx.BLUE)
+                        self.SetReadOnly(k, i + 1, False)
+                        self.SetCellTextColour(k, i + 1, wx.BLUE)
                         if i == 1: #Drop down list. Options: Price/ Yield/ Z-Spread
-                            self.SetCellEditor(k,i+1,wx.grid.GridCellChoiceEditor(['Price','Yield','Spread'],True))
+                            self.SetCellEditor(k, i + 1, wx.grid.GridCellChoiceEditor(['Price','Yield','Spread'],True))
                         if i == 2: #Drop down list. Options: True/ False
-                            self.SetCellEditor(k,i+1, wx.grid.GridCellChoiceEditor(['True','False'],True))
+                            self.SetCellEditor(k, i + 1, wx.grid.GridCellChoiceEditor(['True','False'],True))
                     value = str(self.df.iloc[k,i])
-                    self.SetCellValue(k,i+1,value)
+                    self.SetCellValue(k, i + 1, value)
                     if value == 'START' or value == 'END':
-                        self.SetCellFont(k,i+1, self.fontBold)
+                        self.SetCellFont(k, i + 1, self.fontBold)
                     else:
-                        self.SetCellFont(k,i+1,self.defaultFont)
+                        self.SetCellFont(k, i + 1, self.defaultFont)
             if k==0:    #For the first row => where user specify individual bonds.
                 #Sends out an event when the values in the cells are changed.
                 self.Bind(gridlib.EVT_GRID_CELL_CHANGE, self.addBondsToRuns)
-                self.SetReadOnly(k,1,False)
-                self.SetCellTextColour(k,1,wx.BLUE)
-                for i in range(5,len(self.df.iloc[0])):
-                    self.SetReadOnly(k,i, False)
-                    self.SetCellTextColour(k,i,wx.BLUE)
+                self.SetReadOnly(k, 1, False)
+                self.SetCellTextColour(k, 1, wx.BLUE)
+                for i in range(5, len(self.df.iloc[0])):
+                    self.SetReadOnly(k, i, False)
+                    self.SetCellTextColour(k, i, wx.BLUE)
                     
     def addBondsToRuns(self,event):
         """
@@ -222,8 +222,8 @@ class RunsGrid(gridlib.Grid):
             dailyChange = self.GetCellValue(row, 2)
             if dailyChange == 'Spread':
                 #tdelta = datetime.datetime.now() - self.bdm.USDswapRate.lastRefreshTime
-                if (datetime.datetime.now() - self.bdm.USDswapRate.lastRefreshTime).seconds >= 7200: # HARD-CODING TWO HOURS IN SECONDS
-                    dlg = wx.MessageDialog(self,'Swap rates are more than two hours old - do you want to refresh first?','Swap rate alert',style=wx.YES_NO)
+                if (datetime.datetime.now() - self.bdm.lastRefreshTime).seconds >= 7200: # HARD-CODING TWO HOURS IN SECONDS
+                    dlg = wx.MessageDialog(self, 'Z-spreads last full update >2h ago. Do you want to refresh first?', 'Z-spread update alert', style=wx.YES_NO)
                     #answer = dlg.ShowModal()
                     if dlg.ShowModal() == wx.ID_YES:
                         self.pricerwindow.onRefreshSwapRates(event)
@@ -382,7 +382,6 @@ class PricingGrid(gridlib.Grid):
         bidasksizeinputattr.SetReadOnly(False)
         bidasksizeinputattr.SetAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE)
         bidasksizeinputattr.SetFont(self.fontBold)
-        bidasksizeinputattr.SetTextColour(wx.BLUE)
         sendattr = wx.grid.GridCellAttr()
         sendattr.SetTextColour(wx.BLUE)
         sendattr.SetAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE)
@@ -412,6 +411,7 @@ class PricingGrid(gridlib.Grid):
         colFormats['wxFormat'] = pandas.np.nan
         if self.pricer.mainframe is None or self.pricer.mainframe.isTrader:        
             colFormats.loc[colFormats['Format']=='BIDASK', 'wxFormat'] = bidaskinputattr
+            bidasksizeinputattr.SetTextColour(wx.BLUE)
         else:
             colFormats.loc[colFormats['Format']=='BIDASK', 'wxFormat'] = bidaskattr
         colFormats.loc[colFormats['Format']=='CENTRE', 'wxFormat'] = centrealignattr
@@ -641,7 +641,7 @@ class PricingGrid(gridlib.Grid):
             self.SetCellValue(row, col + 1, '{:,.3f}'.format(newValue + oldOffer - oldValue))
         self.sendUpdateToInforalgo(row)
 
-    def sendUpdateToInforalgo(self,row):
+    def sendUpdateToInforalgo(self, row):
         wx.CallAfter(self.dataSentWarning,row)
         bbg_sec_id = self.GetCellValue(row,0)
         bid_price = float(self.GetCellValue(row, self.columnList.index('BID')))
@@ -652,8 +652,14 @@ class PricingGrid(gridlib.Grid):
         except:
             bid_size = 0
             ask_size = 0
-        self.pricer.uat_table.send_price(bbg_sec_id, bid_price, ask_price, bid_size*1000, ask_size*1000)
-        self.pricer.prd_table.send_price(bbg_sec_id, bid_price, ask_price, bid_size*1000, ask_size*1000)
+        try:
+            self.pricer.uat_table.send_price(bbg_sec_id, bid_price, ask_price, bid_size*1000, ask_size*1000)
+        except:
+            print 'Failed to send data to UAT server'
+        try:
+            self.pricer.prd_table.send_price(bbg_sec_id, bid_price, ask_price, bid_size*1000, ask_size*1000)
+        except:
+            print 'Failed to send data to PRD server'
         pass
 
     def basisPointShift(self,bond,oldValue,strNewValue):
@@ -1207,7 +1213,7 @@ class PricerWindow(wx.Frame):
         self.statusbar.SetStatusText('Refreshing swap rates...',2)
         self.bdm.refreshSwapRates()
         #self.ratesUpdateTime.SetValue(self.lastSwapRefreshTime())
-        self.statusbar.SetStatusText('Last rates update: ' + datetime.datetime.now().strftime('%H:%M'),1)
+        self.statusbar.SetStatusText('Last rates update: ' + datetime.datetime.now().strftime('%H:%M'),2)
         #busyDlg = None
         pass
 

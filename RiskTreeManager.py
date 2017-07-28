@@ -191,10 +191,6 @@ class RiskTreeManager():
         riskFreeIsins = []
         for issuer in self.riskFreeIssuers:
             riskFreeIsins = riskFreeIsins + list(self.th.positionsByISINBook.loc[self.th.positionsByISINBook['Issuer']==issuer,'ISIN'])
-        #if len(riskFreeIsins) > 0:
-        #    riskFreePrices = blpapiwrapper.simpleReferenceDataRequest(dict(zip(riskFreeIsins, map(lambda x:x + '@BGN Corp', riskFreeIsins))), 'PX_MID')
-        #    for (i,row) in riskFreePrices.iterrows():
-        #        self.th.positionsByISINBook.loc[self.th.positionsByISINBook['ISIN']==i,'PriceT'] = float(row['PX_MID'])
         self.th.positionsByISINBook.drop(['PRINCIPAL_FACTOR','RISK_MID','EODPrice', 'SAVG', 'IRRisk'], axis=1, inplace=True)
         self.th.positionsByISINBook = self.th.positionsByISINBook.join(self.EODPrices, on='Bond')
         self.th.positionsByISINBook = self.th.positionsByISINBook.join(self.bdm.df['PRINCIPAL_FACTOR'], on='Bond')
@@ -222,7 +218,7 @@ class RiskTreeManager():
         #self.displayPositionsBook = self.th.positionsByISINBook
         self.displayGroupBook = self.th.positionsByISINBook.groupby(['Book','LongCountry','Issuer','Bond','Series']).sum() #NECESSARY
         pub.sendMessage('REDRAW_TREE', message=MessageContainer('empty'))
-        #self.th.positionsByISINBook.to_csv(TEMPPATH+'test.csv')
+        # self.th.positionsByISINBook.to_csv(TEMPPATH+'test.csv')
 
     def updateNewTradesByISIN(self):
         #THERE SHOULD NOT BE MORE THAN ONE RECORD PER BOOK AND ISIN - THE KEY IS BOOK-ISIN
@@ -234,10 +230,6 @@ class RiskTreeManager():
             riskFreeIsins = []
             for issuer in self.riskFreeIssuers:
                 riskFreeIsins = riskFreeIsins + list(self.new_trades.loc[self.new_trades['Issuer']==issuer,'ISIN'])
-            #if len(riskFreeIsins)>0:
-            #    riskFreePrices = blpapiwrapper.simpleReferenceDataRequest(dict(zip(riskFreeIsins, map(lambda x:x + '@BGN Corp', riskFreeIsins))), 'PX_MID')
-            #    for (i,row) in riskFreePrices.iterrows():
-            #        self.new_trades.loc[self.new_trades['ISIN']==i,'MID'] = float(row['PX_MID'])#this works because bond name == isin for UST and bunds but it's not very clean
         self.positionDeltas = self.new_trades.groupby(['Book','ISIN'])[['Qty','MK']]
         reclist = []
         nkeylist = []
