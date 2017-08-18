@@ -143,13 +143,13 @@ class BondDataModel():
         colsDescription = ['ISIN', 'BOND', 'SERIES', 'CRNCY', 'MATURITY', 'COUPON', 'AMT_OUTSTANDING', 'SECURITY_NAME',
                            'INDUSTRY_GROUP', 'CNTRY_OF_RISK', 'TICKER', 'MATURITYDT']
         # these columns will feed from Bloomberg (or Front) and be regenerated only once
-        colsPriceHistory = ['P1DFRT', 'P1D', 'P1W', 'P1M', 'Y1D', 'Y1W', 'Y1M', 'SAVG', 'ISP1D','ISP1W','ISP1M','INTSWAP1D','INTSWAP1W','INTSWAP1M', 'PRINCIPAL_FACTOR']
+        colsPriceHistory = ['P1DFRT', 'P1D', 'P1W', 'P1M', 'Y1D', 'Y1W', 'Y1M', 'SAVG', 'ISP1D','ISP1W','ISP1M', 'PRINCIPAL_FACTOR']#'INTSWAP1D','INTSWAP1W','INTSWAP1M',
         # these will feed from Bloomberg only once
         colsRating = ['SNP', 'MDY', 'FTC']
         colsAccrued = ['ACCRUED', 'D2CPN']
         # these columns will feed from Bloomberg (or Front) and be regenerated all the time
-        colsPrice = ['BID', 'ASK', 'MID', 'BID_SIZE', 'ASK_SIZE', 'BGN_MID']
-        colsAnalytics = ['YLDB', 'YLDA', 'YLDM', 'ZB', 'ZA', 'ZM','INTSWAP','RSI14','RISK_MID']
+        colsPrice = ['BID', 'ASK', 'MID', 'BID_SIZE', 'ASK_SIZE', 'BGN_MID', 'OLDBID', 'OLDASK']
+        colsAnalytics = ['YLDB', 'YLDA', 'YLDM', 'ZB', 'ZA', 'ZM','RSI14','RISK_MID']#,'INTSWAP'
         colsChanges = ['DP1FRT', 'DP1D', 'DP1W', 'DP1M', 'DY1D', 'DY1W', 'DY1M','DISP1D','DISP1W','DISP1M']
         colsPosition = ['POSITION', 'REGS', '144A','MV','RISK']
         self.colsAll = colsDescription + colsPriceHistory + colsRating + colsAccrued + colsPrice + colsAnalytics + colsChanges + colsPosition  # +colsPricingHierarchy+colsUpdate
@@ -171,9 +171,18 @@ class BondDataModel():
         self.df['POSITION'] = 0
         pub.subscribe(self.updatePositions, "POSITION_UPDATE")
         self.bondList = []
-        self.bbgPriceQuery = ['BID', 'ASK', 'YLD_CNV_BID', 'YLD_CNV_ASK', 'Z_SPRD_BID', 'Z_SPRD_ASK','RSI_14D', 'BID_SIZE', 'ASK_SIZE']
-        self.bbgPriceSpecialQuery = ['BID', 'ASK', 'YLD_CNV_BID', 'YLD_CNV_ASK', 'OAS_SPREAD_BID', 'OAS_SPREAD_ASK','RSI_14D', 'BID_SIZE', 'ASK_SIZE']
-        self.bbgPriceSinkableQuery = ['BID', 'ASK', 'YLD_CNV_BID', 'YLD_CNV_ASK', 'RSI_14D', 'BID_SIZE', 'ASK_SIZE']
+        self.bbgPriceOnlyQuery = ['BID', 'ASK', 'BID_SIZE', 'ASK_SIZE']
+        self.bbgPriceQuery = ['YLD_CNV_BID', 'Z_SPRD_BID', 'RSI_14D']
+        self.bbgPriceSpecialQuery = ['YLD_CNV_BID', 'OAS_SPREAD_BID','RSI_14D']
+        self.bbgPriceLongQuery = ['BID', 'ASK', 'YLD_CNV_BID', 'Z_SPRD_BID', 'RSI_14D', 'BID_SIZE', 'ASK_SIZE']
+        self.bbgPriceLongSpecialQuery = ['BID', 'ASK', 'YLD_CNV_BID', 'OAS_SPREAD_BID', 'RSI_14D', 'BID_SIZE', 'ASK_SIZE']
+
+        # self.bbgPriceQuery = ['YLD_CNV_BID', 'YLD_CNV_ASK', 'Z_SPRD_BID', 'Z_SPRD_ASK','RSI_14D']
+        # self.bbgPriceSpecialQuery = ['YLD_CNV_BID', 'YLD_CNV_ASK', 'OAS_SPREAD_BID', 'OAS_SPREAD_ASK','RSI_14D']
+        # self.bbgPriceLongQuery = ['BID', 'ASK', 'YLD_CNV_BID', 'YLD_CNV_ASK', 'Z_SPRD_BID', 'Z_SPRD_ASK','RSI_14D', 'BID_SIZE', 'ASK_SIZE']
+        # self.bbgPriceLongSpecialQuery = ['BID', 'ASK', 'YLD_CNV_BID', 'YLD_CNV_ASK', 'OAS_SPREAD_BID', 'OAS_SPREAD_ASK','RSI_14D', 'BID_SIZE', 'ASK_SIZE']
+
+        # self.bbgPriceSinkableQuery = ['BID', 'ASK', 'YLD_CNV_BID', 'YLD_CNV_ASK', 'RSI_14D', 'BID_SIZE', 'ASK_SIZE']
         self.riskFreeIssuers = ['T', 'DBR', 'UKT', 'OBL']
         self.bbgPriceRFQuery = ['BID', 'ASK', 'BID_YIELD', 'ASK_YIELD']
         self.bbgSinkRequest = blpapiwrapper.BLPTS()
@@ -214,15 +223,30 @@ class BondDataModel():
         isin = isinkey[0:12]
         bond = regsToBondName[isin]
         if bidask == 'BID':
+            # 1/ WE CACHE THE OLD PRICE
+            self.updateCell(bond, 'OLDBID', self.df.at[bond, 'BID'])
+            self.updateCell(bond, 'OLDASK', self.df.at[bond, 'ASK'])
+            # 2/ WE CHECK IF PRICE CHANGED
             if bond in self.rfbonds:
                 self.blptsAnalytics.get(isin + '@CBBT' + ' Corp', self.bbgPriceRFQuery)
-            elif bond in SPECIALBONDS:
-                self.blptsAnalytics.get(isin + BBGHand + ' Corp', self.bbgPriceSpecialQuery)
             else:
-                try:
+                self.blptsPriceOnly.get(isin + BBGHand + ' Corp', self.bbgPriceOnlyQuery)
+        elif bidask == 'PRICEONLY':
+            data = data.astype(float)
+            for item, value in data.iteritems():
+                self.updateCell(bond,bbgToBdmDic[item],value)
+            if (data['BID'] != self.df.at[bond, 'OLDBID']) or (data['ASK'] != self.df.at[bond, 'OLDASK']):
+                if bond in SPECIALBONDS:
+                    self.blptsAnalytics.get(isin + BBGHand + ' Corp', self.bbgPriceSpecialQuery)
+                else:
                     self.blptsAnalytics.get(isin + BBGHand + ' Corp', self.bbgPriceQuery)
-                except:
-                    print 'error asking analytics for ' + bond
+                    # try:
+                    #     self.blptsAnalytics.get(isin + BBGHand + ' Corp', self.bbgPriceQuery)
+                    # except:
+                    #     print 'error asking analytics for ' + bond
+            else:
+                # print 'Update event without a price change for ' + bond
+                pub.sendMessage('BOND_PRICE_UPDATE', message=MessageContainer(self.df.loc[bond]))
         elif bidask == 'RTGACC':
             for item, value in data.iteritems():
                 self.updateCell(bond,bbgToBdmDic[item],value)
@@ -234,12 +258,14 @@ class BondDataModel():
             except:
                 print data
             if bond in SINKABLEBONDS:
-                self.bbgSinkRequest.fillRequest(isin + ' Corp', ['YAS_ZSPREAD'], strOverrideField='YAS_BOND_PX', strOverrideValue=data['BID'])
+                #self.bbgSinkRequest.fillRequest(isin + ' Corp', ['YAS_ZSPREAD'], strOverrideField='YAS_BOND_PX', strOverrideValue=data['BID'])
+                self.bbgSinkRequest.fillRequest(isin + ' Corp', ['YAS_ZSPREAD'], strOverrideField='YAS_BOND_PX', strOverrideValue=self.df.at[bond, 'BID'])
                 self.bbgSinkRequest.get()
                 self.updateCell(bond, 'ZB', float(self.bbgSinkRequest.output.values[0,0]))
-                self.bbgSinkRequest.fillRequest(isin + ' Corp', ['YAS_ZSPREAD'], strOverrideField='YAS_BOND_PX', strOverrideValue=data['ASK'])
-                self.bbgSinkRequest.get()                
-                self.updateCell(bond, 'ZA', float(self.bbgSinkRequest.output.values[0,0]))
+                #self.bbgSinkRequest.fillRequest(isin + ' Corp', ['YAS_ZSPREAD'], strOverrideField='YAS_BOND_PX', strOverrideValue=data['ASK'])
+                # self.bbgSinkRequest.fillRequest(isin + ' Corp', ['YAS_ZSPREAD'], strOverrideField='YAS_BOND_PX', strOverrideValue=self.df.at[bond, 'ASK'])
+                # self.bbgSinkRequest.get()                
+                # self.updateCell(bond, 'ZA', float(self.bbgSinkRequest.output.values[0,0]))
             if bidask == 'ANALYTICS':
                 self.updateStaticAnalytics(bond)
 
@@ -249,19 +275,29 @@ class BondDataModel():
     def updateStaticAnalytics(self, bond):
         """Updates static analytics.
         """
-        self.updateCell(bond, 'MID', (self.df.at[bond, 'BID'] + self.df.at[bond, 'ASK']) / 2.)
-        self.updateCell(bond, 'DP1FRT', self.df.at[bond, 'MID'] - self.df.at[bond, 'P1DFRT'])       
-        self.updateCell(bond, 'DP1D', self.df.at[bond, 'MID'] - self.df.at[bond, 'P1D'])
-        self.updateCell(bond, 'DP1W', self.df.at[bond, 'MID'] - self.df.at[bond, 'P1W'])
-        self.updateCell(bond, 'DP1M', self.df.at[bond, 'MID'] - self.df.at[bond, 'P1M'])
-        self.updateCell(bond, 'YLDM', (self.df.at[bond, 'YLDB'] + self.df.at[bond, 'YLDA']) / 2.)
-        self.updateCell(bond, 'DY1D', (self.df.at[bond, 'YLDM'] - self.df.at[bond, 'Y1D']) * 100)
-        self.updateCell(bond, 'DY1W', (self.df.at[bond, 'YLDM'] - self.df.at[bond, 'Y1W']) * 100)
-        self.updateCell(bond, 'DY1M', (self.df.at[bond, 'YLDM'] - self.df.at[bond, 'Y1M']) * 100)
-        self.updateCell(bond, 'ZM', (self.df.at[bond, 'ZB'] + self.df.at[bond, 'ZA']) / 2.)
-        self.updateCell(bond, 'DISP1D', (self.df.at[bond, 'ZM'] - self.df.at[bond, 'ISP1D']))
-        self.updateCell(bond, 'DISP1W', (self.df.at[bond, 'ZM'] - self.df.at[bond, 'ISP1W']))
-        self.updateCell(bond, 'DISP1M', (self.df.at[bond, 'ZM'] - self.df.at[bond, 'ISP1M']))
+        self.lock.acquire()
+        dv01 = self.df.at[bond, 'RISK_MID']
+        if dv01 != 0:
+            delta = (self.df.at[bond, 'ASK'] - self.df.at[bond, 'BID']) / dv01
+            self.df.at[bond, 'YLDA'] = self.df.at[bond,'YLDB'] - delta
+            self.df.at[bond, 'ZA'] = self.df.at[bond,'ZB'] - delta*100
+        else:
+            self.df.at[bond, 'YLDA'] = pandas.np.nan
+            self.df.at[bond, 'ZA'] = pandas.np.nan
+        self.df.at[bond, 'MID'] = (self.df.at[bond, 'BID'] + self.df.at[bond, 'ASK']) / 2.
+        self.df.at[bond, 'DP1FRT'] = self.df.at[bond, 'MID'] - self.df.at[bond, 'P1DFRT']     
+        self.df.at[bond, 'DP1D'] = self.df.at[bond, 'MID'] - self.df.at[bond, 'P1D']
+        self.df.at[bond, 'DP1W'] = self.df.at[bond, 'MID'] - self.df.at[bond, 'P1W']
+        self.df.at[bond, 'DP1M'] = self.df.at[bond, 'MID'] - self.df.at[bond, 'P1M']
+        self.df.at[bond, 'YLDM'] = (self.df.at[bond, 'YLDB'] + self.df.at[bond, 'YLDA']) / 2.
+        self.df.at[bond, 'DY1D'] = (self.df.at[bond, 'YLDM'] - self.df.at[bond, 'Y1D']) * 100
+        self.df.at[bond, 'DY1W'] = (self.df.at[bond, 'YLDM'] - self.df.at[bond, 'Y1W']) * 100
+        self.df.at[bond, 'DY1M'] = (self.df.at[bond, 'YLDM'] - self.df.at[bond, 'Y1M']) * 100
+        self.df.at[bond, 'ZM'] = (self.df.at[bond, 'ZB'] + self.df.at[bond, 'ZA']) / 2.
+        self.df.at[bond, 'DISP1D'] = self.df.at[bond, 'ZM'] - self.df.at[bond, 'ISP1D']
+        self.df.at[bond, 'DISP1W'] = self.df.at[bond, 'ZM'] - self.df.at[bond, 'ISP1W']
+        self.df.at[bond, 'DISP1M'] = self.df.at[bond, 'ZM'] - self.df.at[bond, 'ISP1M']
+        self.lock.release()
         pub.sendMessage('BOND_PRICE_UPDATE', message=MessageContainer(self.df.loc[bond]))
 
     def updateCell(self, bond, field, value):
@@ -288,15 +324,19 @@ class BondDataModel():
         self.blptsAnalytics = blpapiwrapper.BLPTS()
         self.streamWatcherAnalytics = StreamWatcher(self, 'ANALYTICS')
         self.blptsAnalytics.register(self.streamWatcherAnalytics)
+        # Price only stream
+        self.blptsPriceOnly = blpapiwrapper.BLPTS()
+        self.streamWatcherPriceOnly = StreamWatcher(self, 'PRICEONLY')
+        self.blptsPriceOnly.register(self.streamWatcherPriceOnly)
         # Price change subscription
         self.streamWatcherBID = StreamWatcher(self,'BID')
         self.bbgstreamBIDEM = blpapiwrapper.BLPStream(list((self.embondsisins + BBGHand + ' Corp').astype(str)), 'BID', 0)
         self.bbgstreamBIDEM.register(self.streamWatcherBID)
         self.bbgstreamBIDEM.start()
-        # Risk free bonds: no streaming as too many updates - poll every 10 minutes
+        # Risk free bonds: no streaming as too many updates - poll every 15 minutes
         rfRequest = blpapiwrapper.BLPTS(list((self.rfbondsisins + '@CBBT' + ' Corp').astype(str)), self.bbgPriceRFQuery)
-        self.RFtimer = RFdata(600, rfRequest, self)
-        self.BDMdata = BDMdata(1800, self) #30 MINUTES
+        self.RFtimer = RFdata(900, rfRequest, self)
+        self.BDMdata = BDMdata(1200, self) #20 MINUTES
         self.BDMEODsave = BDMEODsave(self)
 
     def firstPass(self, priorityBondList=[]):
@@ -314,7 +354,7 @@ class BondDataModel():
             emptyLines = priorityBondList
             isins = self.df.loc[priorityBondList, 'ISIN'] + BBGHand + ' Corp'
         isins = list(isins.astype(str))
-        blpts = blpapiwrapper.BLPTS(isins, self.bbgPriceQuery)
+        blpts = blpapiwrapper.BLPTS(isins, self.bbgPriceLongQuery)
         blptsStream = StreamWatcher(self,'FIRSTPASS')
         blpts.register(blptsStream)
         blpts.get()
@@ -330,7 +370,7 @@ class BondDataModel():
 
         specialBondList = list(set(emptyLines) & set(SPECIALBONDS))
         specialIsins = map(lambda x:self.df.at[x,'ISIN'] + BBGHand + ' Corp',specialBondList)
-        blpts = blpapiwrapper.BLPTS(specialIsins, self.bbgPriceSpecialQuery)
+        blpts = blpapiwrapper.BLPTS(specialIsins, self.bbgPriceLongSpecialQuery)
         specialbondStream = StreamWatcher(self,'FIRSTPASS')
         blpts.register(specialbondStream)
         blpts.get()
@@ -348,6 +388,8 @@ class BondDataModel():
         self.bbgstreamBIDEM = None
         self.streamWatcherBID = None
         self.streamWatcherAnalytics = None
+        self.blptsPriceOnly.closeSession()
+        self.streamWatcherPriceOnly = None
         self.firstPass()
         self.startUpdates()
 

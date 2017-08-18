@@ -35,9 +35,10 @@ from wx.lib.pubsub import pub
 import inforalgo
 import inforalgopanel
 from subprocess import Popen
+from win32api import GetUserName
 
 
-from StaticDataImport import bonds, DEFPATH, APPPATH, bondRuns, frontToEmail, SPECIALBONDS, grid_labels, colFormats, runTitleStr, regsToBondName
+from StaticDataImport import bonds, DEFPATH, APPPATH, bondRuns, frontToEmail, SPECIALBONDS, colFormats, runTitleStr, regsToBondName, tabList#grid_labels, 
 from BondDataModel import BondDataModel
 
 class MessageContainer():
@@ -528,11 +529,12 @@ class PricingGrid(gridlib.Grid):
         event.Skip() # important, otherwise one would need to define all possible events
 
     def onSingleSelection(self, event):
-        bond = self.GetCellValue(event.GetRow(), 1)
-        if bond in self.bdm.df.index and self.bdm.mainframe.isTrader:
-            postxt = 'REGS: ' + '{:,.0f}'.format(self.bdm.df.at[bond, 'REGS']) + '    144A: '+ '{:,.0f}'.format(self.bdm.df.at[bond, '144A'])
-            risktxt = 'SPV01: ' + '{:,.0f}'.format(self.bdm.df.at[bond, 'RISK'])
-            wx.CallAfter(self.writeToStatusBar, bond + ':    ' + postxt + '    ' + risktxt)
+        if not (self.pricer.mainframe is None):
+            bond = self.GetCellValue(event.GetRow(), 1)
+            if bond in self.bdm.df.index and self.bdm.mainframe.isTrader:
+                postxt = 'REGS: ' + '{:,.0f}'.format(self.bdm.df.at[bond, 'REGS']) + '    144A: '+ '{:,.0f}'.format(self.bdm.df.at[bond, '144A'])
+                risktxt = 'SPV01: ' + '{:,.0f}'.format(self.bdm.df.at[bond, 'RISK'])
+                wx.CallAfter(self.writeToStatusBar, bond + ':    ' + postxt + '    ' + risktxt)
         event.Skip()
 
     def onSelection(self, event):
@@ -1050,12 +1052,16 @@ class PricerWindow(wx.Frame):
 
         defaultColumnList = ['ISIN', 'BOND','BID', 'ASK', 'BID_S','ASK_S', 'BGN_M', 'POSITION', 'YIELD', 'Z-SPREAD', 'DP(1D/1W/1M)','DZ(1D/1W/1M)',
                              'BENCHMARK', 'RSI14', 'ACCRUED', 'D2CPN', 'S / M / F', 'COUPON', 'MATURITY', 'SIZE']#removed columns: 'DY(1D/1W/1M)' POS AFTER RSI14
+        try:
+            grid_labels = list(tabList[GetUserName()][tabList[GetUserName()].notnull()])
+        except:
+            grid_labels = list(tabList['other'][tabList['other'].notnull()])
         ####DEBUG MODE######
-        # grid_labels = ['Africa', 'IRHedges']# used for testing
+        ####grid_labels = ['Africa', 'IRHedges']# used for testing
         ####END DEBUG MODE######
         for label in grid_labels:#
             csv = pandas.read_csv(DEFPATH+label+'Tab.csv')
-            csv['Bonds'].fillna('',inplace=True)
+            csv['Bonds'].fillna('', inplace=True)
             tab = wx.Panel(parent=self.notebook)
             grid = PricingGrid(tab, csv, defaultColumnList, self.bdm, self)
             self.gridList.append(grid)
