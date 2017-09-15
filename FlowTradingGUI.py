@@ -38,13 +38,13 @@ from BondTools import ChartTypes
 from TradeHistoryAnalysis import TradeHistory # this is important so you can import/pickle the existing file
 import ModelPortfolio
 import FO_Toolkit
-import RiskTreeView
-import FrontPnL
-import BondDataModel
+# import RiskTreeView
+# import FrontPnL
+# import BondDataModel
 import Pricer
 from RiskTreeManager import RiskTreeManager
 import ma_analysis
-import time
+# import time
 # import mpfiPricer
 from StaticDataImport import APPPATH, TEMPPATH, bonds, traderLogins
 from ChartingPanel import ChartingPanel
@@ -310,6 +310,7 @@ class MainForm(wx.Frame):
         cisWeeklyItem = adminMenu.Append(wx.ID_ANY,"Plot CIS weekly")
         eurozoneWeeklyItem = adminMenu.Append(wx.ID_ANY,"Plot Eurozone weekly")
         maDataReportItem = adminMenu.Append(wx.ID_ANY,"Daily MA report")
+        maHotAndColdItem = adminMenu.Append(wx.ID_ANY,"MA hot and cold")
 
         ############CREATE THE MENUBAR############
         self.menuBar = wx.MenuBar()
@@ -339,6 +340,7 @@ class MainForm(wx.Frame):
         self.Bind(wx.EVT_MENU,self.onCisWeekly, cisWeeklyItem)
         self.Bind(wx.EVT_MENU,self.onEurozoneWeekly, eurozoneWeeklyItem)
         self.Bind(wx.EVT_MENU,self.onMaDataReportItem, maDataReportItem)
+        self.Bind(wx.EVT_MENU,self.onMaHotAndColdItem, maHotAndColdItem)
 
         self.Bind(wx.EVT_MENU,self.onBuildModelPortfolioButton,buildModelPortfolioItem)
         self.Bind(wx.EVT_MENU,self.onPrintModelPortfolio,printModelPortfolioItem)
@@ -587,20 +589,6 @@ class MainForm(wx.Frame):
                 print 'No current position in ' + bondname
             print ''
         self.tabBondActivityMultiGrid.fillGrid(bondname)
-        self.th.simpleQuery('Bond',bondname)
-        pass
-
-    def onBondQuerySubOld(self,bondname):
-        """Function to query the current position for the bond. Function is called by onBondQuery and onQuickBondQuery
-        """
-        self.log.Clear()
-        self.notebook.SetSelection(0)
-        if self.isTrader:
-            if bondname in self.th.positions.index:
-                print 'Current position for ' + bondname + ': {:,.0f}'.format(self.th.positions.loc[bondname,'Qty'])
-            else:
-                print 'No current position in ' + bondname
-            print ''
         self.th.simpleQuery('Bond',bondname)
         pass
 
@@ -899,14 +887,23 @@ class MainForm(wx.Frame):
         pass
 
     def onMaDataReportItem(self,event):
-        _offsets = (3, 1, 1, 1, 1, 1, 2)
-        yesterday = (self.todayDT - datetime.timedelta(days=_offsets[self.todayDT.weekday()])).strftime('%Y%m%d')
-        filename=yesterday+'.csv'
         self.log.Clear()
         self.notebook.SetSelection(0)
-        x=ma_analysis.MAData(filename)
-        x.full_report()
+        dtToday = datetime.datetime.now()
+        _offsets = (3, 1, 1, 1, 1, 1, 2)
+        dtYesterday = dtToday - datetime.timedelta(days=_offsets[dtToday.weekday()])
+        self.ma.full_report(dtYesterday)
         pass
+
+    def onMaHotAndColdItem(self, event):
+        self.log.Clear()
+        self.notebook.SetSelection(0)
+        questionlist = ['Days to analyze:', 'Bond tail:']
+        choiceList = [['7', '14', '30', '1', '2', '3'], ['20', '50', '100']]
+        data = self.multipleComboQuery(event, 'MarketAxess hot and cold', questionlist, choiceList)
+        print self.ma.hot_and_cold(int(data[0]), int(data[1]))
+        pass
+
 
 ############MAIN PROGRAM############
 # Run the program

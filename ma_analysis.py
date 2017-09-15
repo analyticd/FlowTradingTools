@@ -84,6 +84,8 @@ class FullMarketAxessData():
         self.df['DateDT'] = self.df['Date']
         #self.df['DateDT'] = pandas.to_datetime(self.df['Date'],format='%d/%m/%Y %H:%M:%S')
         self.df['Date'] = self.df['DateDT'].apply(lambda x:x.date())
+        # we filter for error trades
+        self.df = self.df[self.df['AbsUSDQty']<100000] # filtering for likely error trades
         #del self.df['Client'] - WE NEED THIS SO WE CAN LOOK FOR NAN
 
     def load_files_full(self):
@@ -156,51 +158,71 @@ class FullMarketAxessData():
 
 
     def total_report(self, dt):
-        dts = dt.strftime('%d/%m/%y')
-        subdf=self.df.loc[self.df['Date']==dts]
-        grp=subdf.groupby('CCY')
-        print grp[['USDQty','AbsQty']].sum().applymap(lambda y:'{:,.2f}'.format(y))
+        dts = dt.date()
+        subdf = self.df.loc[self.df['Date']==dts]
+        grp = subdf.groupby('CCY')
+        print grp[['USDQty','AbsQty']].sum().applymap(lambda y:'{:,.0f}'.format(y))
         pass
 
     def client_report(self, dt):
-        dts = dt.strftime('%d/%m/%y')
+        dts = dt.date()
         subdf = self.df.loc[self.df['Date']==dts]
         grp1 = subdf.groupby('Counterparty')
         sg = grp1.sum()
-        out = sg[(sg['USDQty']>=2) | (sg['USDQty']<-2)]
-        print out['USDQty'].apply(lambda y:'{:,.1f}'.format(y))
+        out = sg[(sg['USDQty']>=2000) | (sg['USDQty']<-2000)]
+        print out['USDQty'].apply(lambda y:'{:,.0f}'.format(y))
         #print ''
         #grp2=self.df.groupby(['MACounterparty','Country'])
         #print grp2[['USDQty']].sum().applymap(lambda y:'{:,.2f}'.format(y))
         pass
 
     def region_report(self, dt):
-        dts = dt.strftime('%d/%m/%y')
+        dts = dt.date()
         subdf = self.df.loc[self.df['Date']==dts]
         grp1 = subdf.groupby('Region')
-        print grp1[['USDQty']].sum().loc[['Africa','CEE','CIS']].applymap(lambda y:'{:,.1f}'.format(y))
+        print grp1[['USDQty']].sum().loc[['Africa','CEE','CIS']].applymap(lambda y:'{:,.0f}'.format(y))
         print ''
-        grp2 = self.df.groupby(['Region','Country'])
-        print grp2[['USDQty']].sum().loc[['Africa','CEE','CIS']].applymap(lambda y:'{:,.1f}'.format(y))
+        grp2 = subdf.groupby(['Region','Country'])
+        print grp2[['USDQty']].sum().loc[['Africa','CEE','CIS']].applymap(lambda y:'{:,.0f}'.format(y))
         pass
 
     def full_report(self, dt):
         print '=============================================='
         print 'Total enquiries:'
         print '=============================================='
-        self.total_report()
+        self.total_report(dt)
         print ''
         print '=============================================='
         print 'Enquiries by region (only accurate for EMEA):'
         print '=============================================='
-        self.region_report()
+        self.region_report(dt)
         print ''
         print '=============================================='
         print 'Enquiries by client (showing >$2mm net):'
         print '=============================================='
-        self.client_report()
+        self.client_report(dt)
         print ''
         pass
+
+    def hot_and_cold(self, days, tail):
+        dt = datetime.datetime.now() - datetime.timedelta(days=days)
+        dt = dt.replace(hour=0,  minute=0)
+        subdf = self.df.loc[self.df['DateDT'] >= dt]
+        grp = subdf.groupby(['Bond'])
+        a = grp['AbsQty'].agg(['sum','count'])
+        out = a.sort_values('sum').tail(tail)
+        out['net'] = grp['USDQty'].sum()
+        grp2 = subdf[subdf['USDQty']<0].groupby('Bond')
+        b = grp2['USDQty'].agg(['sum','count'])
+        out['ClientBuys'] = b['count']
+        out.fillna(0, inplace=True)
+        out = out.sort_values('sum',ascending=False)
+        prettyout=out.copy()
+        prettyout['sum'] = prettyout['sum'].apply(lambda y:'{:,.0f}'.format(y))
+        prettyout['net'] = prettyout['net'].apply(lambda y:'{:,.0f}'.format(y))
+        print prettyout
+        return out
+
 
 
 

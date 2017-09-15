@@ -32,8 +32,8 @@ from StaticDataImport import MYPATH, TEMPPATH, THPATH, DEFPATH, UATPATH, ccy, co
 #Define globals
 #MYPATH='O:\\Global~2\\Credit~2\\Credit~1\\FlowTr~1\\Tools\\'
 YTDPATH = STAGINGPATH#'Z:\\GlobalMarkets\\Credit Trading\\PROD\\Staging\\'
-UKSALES = ['COVINOA','TROSSEW','FOXMARK','OXLEYM','SPACHIH','SCRIVENJ','DRABBLES','OZELN','COXLAUR','OLAWOYIM','STIRLINE','LEAMYT','AYRAPETA','SIRIWAJ','DEBEERJ','HOUSERM','CROFTJIM','BYRNEJUL', 'ZOHIDOVG', 'COLQUHI', 'FOLMOMA', 'FROSTG','GOLDBERS','GUESNETP','HARLINGV','MAGALHAB','RILEYP','TREMOCOA','KHUSSAIE', 'PRESTESJ']
-NYSALES = ['WILCOCKT','MURPHYG','OHIGGINJ','MELTONED','BIRKHOLD','LIEBERDE','LOPEZLEY','LOPSROG','RADONJIC','SOARESMA','OWOOKWAK']
+UKSALES = ['COVINOA','TROSSEW','FOXMARK','OXLEYM','SPACHIH','SCRIVENJ','DRABBLES','OZELN','COXLAUR','OLAWOYIM','STIRLINE','LEAMYT','AYRAPETA','SIRIWAJ','DEBEERJ','HOUSERM','CROFTJIM','BYRNEJUL', 'ZOHIDOVG', 'COLQUHI', 'FOLMOMA', 'FROSTG','GOLDBERS','GUESNETP','HARLINGV','MAGALHAB','RILEYP','TREMOCOA','KHUSSAIE', 'PRESTESJ', 'BERISSSA']
+NYSALES = ['WILCOCKT','MURPHYG','OHIGGINJ','MELTONED','BIRKHOLD','LIEBERDE','LOPEZLEY','LOPSROG','RADONJIC','SOARESMA','OWOOKWAK', 'KRATZRIC', 'VAUGHANA']
 ASIASALES = ['CHIAWSH','LICHENC']
 ALLSALES = UKSALES + NYSALES + ASIASALES
 
@@ -651,7 +651,7 @@ class TradeHistory:
         subdf['AbsQtyMK'] = subdf.loc[subdf['MK']!=0,'AbsQty']
         book = subdf.groupby('Book')
         region = subdf.groupby('Region')
-        return (book.sum(), region.sum())
+        return (book.sum().fillna(0), region.sum().fillna(0))
 
     def compareUKvsNY(self):
         """Compare client profitabiltiy between UK and NY (called by makeQuery)
