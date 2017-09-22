@@ -40,6 +40,7 @@ from win32api import GetUserName
 
 from StaticDataImport import bonds, DEFPATH, APPPATH, bondRuns, frontToEmail, SPECIALBONDS, colFormats, runTitleStr, regsToBondName, tabList, columnListByTrader
 from BondDataModel import BondDataModel
+from guiWidgets import GenericDisplayGrid
 
 class MessageContainer():
     def __init__(self, data):
@@ -88,14 +89,15 @@ class TextDisplayWindow(wx.Frame):
 class AxeGrid(wx.Frame):
     def __init__(self, title, bdm, bondList):
         wx.Frame.__init__(self, None, wx.ID_ANY, title, size=(800, 600))
-        panel = wx.Panel(self) 
-        sizer = wx.BoxSizer()
-
-        self.grid = gridlib.Grid(panel)
-        self.grid.Bind(wx.EVT_KEY_DOWN, self.onKeyDown)
-        sizer.Add(self.grid, proportion=1, flag=wx.EXPAND)
+        panel = wx.Panel(self)
+        notebookPanel = wx.Panel(panel)
+        self.notebook = wx.Notebook(notebookPanel)
+        bbgAxePanel = wx.Panel(parent=self.notebook)
+        maAxePanel = wx.Panel(parent=self.notebook)
         #Attributes creation
-        self.fontBold = self.grid.GetDefaultCellFont()
+        testgrid = gridlib.Grid(bbgAxePanel)
+        self.fontBold = testgrid.GetDefaultCellFont()
+        testgrid.Destroy()
         self.fontBold.SetWeight(wx.FONTWEIGHT_BOLD)
         defattr = wx.grid.GridCellAttr()
         defattr.SetReadOnly(True)
@@ -108,94 +110,64 @@ class AxeGrid(wx.Frame):
         bidasksizeinputattr.SetReadOnly(False)
         bidasksizeinputattr.SetAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE)
         bidasksizeinputattr.SetFont(self.fontBold)
-
-        self.columnList = ['Security', 'B Axe', 'B Sz(M)', 'B Px', 'A Axe', 'A Sz(M)', 'A Px']
-
-        self.grid.CreateGrid(200, len(self.columnList))
         bidasksizeinputattr.SetTextColour(wx.BLUE)
-        
-        self.grid.SetColAttr(0, defattr)
-        self.grid.SetColSize(0, 100)
-        self.grid.SetColAttr(1, defattr)
-        self.grid.SetColSize(1, 50)
-        self.grid.SetColAttr(2, bidasksizeinputattr)
-        self.grid.SetColSize(2, 50)
-        self.grid.SetColAttr(3, bidaskinputattr)
-        self.grid.SetColSize(3, 50)
-        self.grid.SetColAttr(4, defattr)
-        self.grid.SetColSize(4, 50)
-        self.grid.SetColAttr(5, bidasksizeinputattr)
-        self.grid.SetColSize(5, 50)
-        self.grid.SetColAttr(6, bidaskinputattr)
-        self.grid.SetColSize(6, 50)
-
+        #############################
+        columnList = ['Security', 'B Axe', 'B Sz(M)', 'B Px', 'A Axe', 'A Sz(M)', 'A Px']
+        columnWidth = [100, 65, 65, 65, 65, 65, 65]
+        columnAttr = [defattr, defattr, bidasksizeinputattr, bidaskinputattr, defattr, bidasksizeinputattr, bidaskinputattr]
+        self.grid = GenericDisplayGrid(bbgAxePanel, 100, len(columnList), columnList, columnWidth, columnAttr, False, True)
         self.grid.SetRowLabelSize(100)
-
-        for (j, header) in enumerate(self.columnList):
-            self.grid.SetColLabelValue(j, header)
-
+        columnList = ['Identifier(ISIN/CUSIP)','Side(B/S/Buy/Sell)','Size(000s)','Level','Min Size','Book','BM Book']
+        columnWidth = [145, 145, 65, 65, 65, 65, 65]
+        columnAttr = [defattr, defattr, bidasksizeinputattr, bidaskinputattr, defattr, defattr, defattr]
+        self.magrid = GenericDisplayGrid(maAxePanel, 100, len(columnList), columnList, columnWidth, columnAttr, False, True)
+        self.magrid.SetRowLabelSize(100)
+        #############################
         i = 0
         for bond in bondList:
             if bond not in bdm.df.index:
                 continue
-            if bdm.df.at[bond,'POSITION']==0:
+            bonddata = bdm.df.loc[bond]
+            if abs(bonddata['POSITION'])<200000:
                 continue
             self.grid.SetRowLabelValue(i, bond)
-            self.grid.SetCellValue(i, 0, bdm.df.at[bond, 'ISIN'])
-            if bdm.df.at[bond,'POSITION']<0:
+            self.grid.SetCellValue(i, 0, bonddata['ISIN'])
+            self.magrid.SetRowLabelValue(i, bond)
+            self.magrid.SetCellValue(i, 0, bonddata['ISIN'])
+            if bonddata['POSITION']<0:
                 self.grid.SetCellValue(i, 1, 'Y')
-                self.grid.SetCellValue(i, 2, '{:.0f}'.format(-bdm.df.at[bond, 'POSITION']/1000.))
-                self.grid.SetCellValue(i, 3, '{:,.3f}'.format(bdm.df.at[bond, 'BID']))
-            if bdm.df.at[bond,'POSITION']>0:
+                self.grid.SetCellValue(i, 2, '{:.0f}'.format(-bonddata['POSITION']/1000.))
+                self.grid.SetCellValue(i, 3, '{:,.3f}'.format(bonddata['BID']))
+                self.magrid.SetCellValue(i, 1, 'B')
+                self.magrid.SetCellValue(i, 3, '{:,.3f}'.format(bonddata['BID']))
+            if bonddata['POSITION']>0:
                 self.grid.SetCellValue(i, 4, 'Y')
-                self.grid.SetCellValue(i, 5, '{:.0f}'.format(bdm.df.at[bond, 'POSITION']/1000.))
-                self.grid.SetCellValue(i, 6, '{:,.3f}'.format(bdm.df.at[bond, 'ASK']))
+                self.grid.SetCellValue(i, 5, '{:.0f}'.format(bonddata['POSITION']/1000.))
+                self.grid.SetCellValue(i, 6, '{:,.3f}'.format(bonddata['ASK']))
+                self.magrid.SetCellValue(i, 1, 'S')
+                self.magrid.SetCellValue(i, 3, '{:,.3f}'.format(bonddata['ASK']))
+            self.magrid.SetCellValue(i, 2, '{:.0f}'.format(abs(bonddata['POSITION']/1000.)))
+            self.magrid.SetCellValue(i, 4, '200')
+            self.magrid.SetCellValue(i, 5, 'APGSG')
+            self.magrid.SetCellValue(i, 6, 'APGSG')
             i = i + 1
-        panel.SetSizerAndFit(sizer)
+        #############################
+        self.notebook.AddPage(bbgAxePanel, 'Bloomberg')
+        sizerbbg = wx.BoxSizer()
+        sizerbbg.Add(self.grid, proportion=1, flag=wx.EXPAND)
+        bbgAxePanel.SetSizerAndFit(sizerbbg)
+        self.notebook.AddPage(maAxePanel, 'MarketAxess')
+        sizerma = wx.BoxSizer()
+        sizerma.Add(self.magrid, proportion=1, flag=wx.EXPAND)
+        maAxePanel.SetSizerAndFit(sizerma)
+        sizer = wx.BoxSizer()
+        sizer.Add(notebookPanel, 1, wx.EXPAND, 0)
+        notebookPanelSizer = wx.BoxSizer(wx.VERTICAL)
+        notebookPanelSizer.Add(self.notebook, 1, wx.EXPAND)
+        notebookPanel.SetSizer(notebookPanelSizer)
+        panel.SetSizer(sizer)
+        self.Layout()
         self.Show()
-        pass
-
-    def onCopySelection(self):
-    # Number of rows and cols
-        if self.grid.GetSelectionBlockTopLeft() == []:
-            rows = 1
-            cols = 1
-            iscell = True
-        else:
-            rows = self.grid.GetSelectionBlockBottomRight()[0][0] - self.grid.GetSelectionBlockTopLeft()[0][0] + 1
-            cols = self.grid.GetSelectionBlockBottomRight()[0][1] - self.grid.GetSelectionBlockTopLeft()[0][1] + 1
-            iscell = False
-        # data variable contain text that must be set in the clipboard
-        data = ''
-        # For each cell in selected range append the cell value in the data variable
-        # Tabs '\t' for cols and '\r' for rows
-        for r in range(rows):
-            for c in range(cols):
-                if iscell:
-                    data += str(self.grid.GetCellValue(self.grid.GetGridCursorRow() + r, self.grid.GetGridCursorCol() + c))
-                else:
-                    data += str(self.grid.GetCellValue(self.grid.GetSelectionBlockTopLeft()[0][0] + r, self.grid.GetSelectionBlockTopLeft()[0][1] + c))
-                if c < cols - 1:
-                    data += '\t'
-            data += '\n'
-        # Create text data object
-        clipboard = wx.TextDataObject()
-        # Set data object value
-        clipboard.SetText(data)
-        # Put the data in the clipboard
-        if wx.TheClipboard.Open():
-            wx.TheClipboard.SetData(clipboard)
-            wx.TheClipboard.Close()
-        else:
-            wx.MessageBox("Can't open the clipboard", "Error")
-
-    def onKeyDown(self, event):
-        keycode = event.GetKeyCode()
-        if keycode == 67 and event.ControlDown():
-            self.onCopySelection()
-        else:
-            pass
-        event.Skip() # important, otherwise one would need to define all possible events
 
 
 class RunsGrid(gridlib.Grid):
@@ -575,7 +547,12 @@ class PricingGrid(gridlib.Grid):
         self.previousSingleSelection = True
         self.singleSelection = True
 
+        self.bidCol = self.columnList.index('BID')
         self.askCol = self.columnList.index('ASK')
+        self.bidSizeCol = self.columnList.index('BID_S')
+        self.askSizeCol = self.columnList.index('ASK_S')
+        self.isinCol = self.columnList.index('ISIN')
+        self.bondCol = self.columnList.index('BOND')
 
     def initialPaint(self):
         """
@@ -645,7 +622,7 @@ class PricingGrid(gridlib.Grid):
 
     def onSingleSelection(self, event):
         if not (self.pricer.mainframe is None):
-            bond = self.GetCellValue(event.GetRow(), 1)
+            bond = self.GetCellValue(event.GetRow(), self.bondCol)
             if bond in self.bdm.df.index and self.bdm.mainframe.isTrader:
                 postxt = 'REGS: ' + '{:,.0f}'.format(self.bdm.df.at[bond, 'REGS']) + '    144A: '+ '{:,.0f}'.format(self.bdm.df.at[bond, '144A'])
                 risktxt = 'SPV01: ' + '{:,.0f}'.format(self.bdm.df.at[bond, 'RISK'])
@@ -738,7 +715,7 @@ class PricingGrid(gridlib.Grid):
     def onEditSingleCell(self,event):
         row = event.GetRow()
         col = event.GetCol()
-        bond = self.GetCellValue(row,1)
+        bond = self.GetCellValue(row, self.bondCol)
         colID = self.GetColLabelValue(col)
         try:
             oldValue = float(event.GetString())
@@ -760,13 +737,14 @@ class PricingGrid(gridlib.Grid):
 
     def sendUpdateToInforalgo(self, row):
         wx.CallAfter(self.dataSentWarning,row)
-        bbg_sec_id = self.GetCellValue(row,0)
-        bid_price = float(self.GetCellValue(row, self.columnList.index('BID')))
-        ask_price = float(self.GetCellValue(row, self.columnList.index('ASK')))
+        bbg_sec_id = self.GetCellValue(row, self.isinCol)
+        bid_price = float(self.GetCellValue(row, self.bidCol))
+        ask_price = float(self.GetCellValue(row, self.askCol))
         try:
-            bid_size = int(self.GetCellValue(row, self.columnList.index('BID_S')).replace(',',''))
-            ask_size = int(self.GetCellValue(row, self.columnList.index('ASK_S')).replace(',',''))
+            bid_size = int(self.GetCellValue(row, self.bidSizeCol).replace(',',''))
+            ask_size = int(self.GetCellValue(row, self.askSizeCol).replace(',',''))
         except:
+            print bbg_sec_id + ' error getting size, sending 0'
             bid_size = 0
             ask_size = 0
         try:
@@ -811,8 +789,8 @@ class PricingGrid(gridlib.Grid):
         return newValue
 
     def dataSentWarning(self, row):
-        for cell in ['BID', 'ASK', 'BID_S', 'ASK_S']:
-            self.SetCellBackgroundColour(row, self.columnList.index(cell), wx.YELLOW)
+        for c in [self.bidCol, self.askCol, self.bidSizeCol, self.askSizeCol]:
+            self.SetCellBackgroundColour(row, c, wx.YELLOW)
 
     def onPastePrices(self, event):
         if not wx.TheClipboard.IsOpened():
@@ -828,12 +806,12 @@ class PricingGrid(gridlib.Grid):
                 row = rowstart + y
                 for x, c in enumerate(r.split('\t')):
                     self.SetCellValue(row, colstart + x, c)
-                bbg_sec_id = self.GetCellValue(row,0)
-                bid_price = float(self.GetCellValue(row, self.columnList.index('BID')))
-                ask_price = float(self.GetCellValue(row, self.columnList.index('ASK')))
+                bbg_sec_id = self.GetCellValue(row, self.isinCol)
+                bid_price = float(self.GetCellValue(row, self.bidCol))
+                ask_price = float(self.GetCellValue(row, self.askCol))
                 try:
-                    bid_size = int(self.GetCellValue(row, self.columnList.index('BID_S')).replace(',',''))
-                    ask_size = int(self.GetCellValue(row, self.columnList.index('ASK_S')).replace(',',''))
+                    bid_size = int(self.GetCellValue(row, self.bidSizeCol).replace(',',''))
+                    ask_size = int(self.GetCellValue(row, self.askSizeCol).replace(',',''))
                 except:
                     bid_size = 0
                     ask_size = 0
@@ -1145,7 +1123,7 @@ class PricerWindow(wx.Frame):
             grid_labels = list(tabList['other'][tabList['other'].notnull()])
             columnList = defaultColumnList
         ####DEBUG MODE######
-        #grid_labels = ['Africa', 'IRHedges']# used for testing
+        # grid_labels = ['Africa', 'IRHedges']# used for testing
         ####END DEBUG MODE######
         for label in grid_labels:#
             csv = pandas.read_csv(DEFPATH+label+'Tab.csv')

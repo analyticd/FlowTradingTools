@@ -398,7 +398,7 @@ class ChartEngine():
                 zspread.append(float(blpts.output.loc[bonds.loc[bond,'REGS'] + ' Corp','YAS_ZSPREAD']))
         blpts.closeSession()
         blpts = None
-        chart = ScatterChart(self.title,'Duration','Z-spread',duration,zspread,self.bondlist,colors,self.labeltextsize, self.PDF)
+        chart = ScatterChart(self.title,'Risky duration','Z-spread',duration,zspread,self.bondlist,colors,self.labeltextsize, self.PDF)
         chart.ZSpreadTemplate()
         self.send_chart(chart)
 

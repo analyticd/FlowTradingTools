@@ -177,6 +177,14 @@ class SQLTable():
         df = pandas.read_sql_table('tblQuote', self.engine, schema='dbo')
         return df[['bbrgDate','bbrgTime','bbrgStatus','bbrgSec6id','bbrgVala','bbrgValc','bbrgValb','bbrgVald']]
 
+
+    def reset_time_stamp(self):
+        pass
+
+
+
+
+
     # def start_of_day(self):
     #     try:#Read table - it could be empty
     #         df = pandas.read_sql_table('tblQuote',engine,schema='dbo')

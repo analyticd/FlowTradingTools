@@ -282,29 +282,29 @@ class MainForm(wx.Frame):
         fileMenu.AppendSeparator()
         exitItem = fileMenu.Append(wx.ID_EXIT,"E&xit"," Terminate the program")
 
-        tradeHistoryMenuBondQueryItem=tradeHistoryMenu.Append(wx.ID_ANY,"&Bond query")
-        tradeHistoryMenuQuickBondQueryItem=tradeHistoryMenu.Append(wx.ID_ANY,"&Quick bond query     Ctrl+B")
-        tradeHistoryMenuClientQueryItem=tradeHistoryMenu.Append(wx.ID_ANY,"&Client query")
-        tradeHistoryMenuSalesPersonQueryItem=tradeHistoryMenu.Append(wx.ID_ANY,"&Salesperson query")
-        tradeHistoryMenuIssuerQueryItem=tradeHistoryMenu.Append(wx.ID_ANY,"&Issuer query")
-        tradeHistoryMenuCountryQueryItem=tradeHistoryMenu.Append(wx.ID_ANY,"&Country query")
+        tradeHistoryMenuBondQueryItem = tradeHistoryMenu.Append(wx.ID_ANY,"&Bond query")
+        tradeHistoryMenuQuickBondQueryItem = tradeHistoryMenu.Append(wx.ID_ANY,"&Quick bond query     Ctrl+B")
+        tradeHistoryMenuClientQueryItem = tradeHistoryMenu.Append(wx.ID_ANY,"&Client query")
+        tradeHistoryMenuSalesPersonQueryItem = tradeHistoryMenu.Append(wx.ID_ANY,"&Salesperson query")
+        tradeHistoryMenuIssuerQueryItem = tradeHistoryMenu.Append(wx.ID_ANY,"&Issuer query")
+        tradeHistoryMenuCountryQueryItem = tradeHistoryMenu.Append(wx.ID_ANY,"&Country query")
         tradeHistoryMenu.AppendSeparator()
-        tradeHistoryMenuAdvancedQueryItem=tradeHistoryMenu.Append(wx.ID_ANY,"&Advanced query")
-        tradeHistoryMenuMonthlyQueryItem=tradeHistoryMenu.Append(wx.ID_ANY,"&Monthly query")
+        tradeHistoryMenuAdvancedQueryItem = tradeHistoryMenu.Append(wx.ID_ANY,"&Advanced query")
+        tradeHistoryMenuMonthlyQueryItem = tradeHistoryMenu.Append(wx.ID_ANY,"&Monthly query")
         tradeHistoryMenu.AppendSeparator()
-        clientTradingReportItem=tradeHistoryMenu.Append(wx.ID_ANY,"Client trading &report")
+        clientTradingReportItem = tradeHistoryMenu.Append(wx.ID_ANY,"Client trading &report")
 
-        buildModelPortfolioItem=modelPortfolioMenu.Append(wx.ID_ANY,"&Build")
-        printModelPortfolioItem=modelPortfolioMenu.Append(wx.ID_ANY,"&Text output")
-        performanceChartModelPortfolioItem=modelPortfolioMenu.Append(wx.ID_ANY,"&Performance chart")
-        sendModelPortfolioEmail=modelPortfolioMenu.Append(wx.ID_ANY,"&Send email")
+        buildModelPortfolioItem = modelPortfolioMenu.Append(wx.ID_ANY,"&Build")
+        printModelPortfolioItem = modelPortfolioMenu.Append(wx.ID_ANY,"&Text output")
+        performanceChartModelPortfolioItem = modelPortfolioMenu.Append(wx.ID_ANY,"&Performance chart")
+        sendModelPortfolioEmail = modelPortfolioMenu.Append(wx.ID_ANY,"&Send email")
 
         openRepos = adminMenu.Append(wx.ID_ANY,"&Open repos")
-        adminMenuUpdateBondUniverseItem=adminMenu.Append(wx.ID_ANY,"&Update BondUniverse file")
-        highSCCheckItem=adminMenu.Append(wx.ID_ANY,"&High SC check")
-        newClientReportItem=adminMenu.Append(wx.ID_ANY,"&New client report")
-        regs144aReportItem=adminMenu.Append(wx.ID_ANY,"&REGS/144A report")
-        forceRebuildTradeHistoryItem=tradeHistoryMenu.Append(wx.ID_ANY,"&Force rebuild trade history")
+        adminMenuUpdateBondUniverseItem = adminMenu.Append(wx.ID_ANY,"&Update BondUniverse file")
+        highSCCheckItem = adminMenu.Append(wx.ID_ANY,"&High SC check")
+        newClientReportItem = adminMenu.Append(wx.ID_ANY,"&New client report")
+        regs144aReportItem = adminMenu.Append(wx.ID_ANY,"&REGS/144A report")
+        forceRebuildTradeHistoryItem = tradeHistoryMenu.Append(wx.ID_ANY,"&Force rebuild trade history")
         africaWeeklyItem = adminMenu.Append(wx.ID_ANY,"Plot Africa weekly")
         ceeWeeklyItem = adminMenu.Append(wx.ID_ANY,"Plot CEE weekly")
         cisWeeklyItem = adminMenu.Append(wx.ID_ANY,"Plot CIS weekly")
@@ -321,38 +321,38 @@ class MainForm(wx.Frame):
         self.SetMenuBar(self.menuBar)  
 
         ############ASSIGN ACTIONS############
-        self.Bind(wx.EVT_MENU,self.onLaunchPricer,launchPricerItem)        
-        self.Bind(wx.EVT_MENU,self.onAbout,aboutItem)
-        self.Bind(wx.EVT_MENU,self.onExit,exitItem)
+        self.Bind(wx.EVT_MENU, self.onLaunchPricer,launchPricerItem)
+        self.Bind(wx.EVT_MENU, self.onAbout,aboutItem)
+        self.Bind(wx.EVT_MENU, self.onExit,exitItem)
 
-        self.Bind(wx.EVT_MENU,self.onBondQuery,tradeHistoryMenuBondQueryItem)
-        self.Bind(wx.EVT_MENU,self.onQuickBondQuery,tradeHistoryMenuQuickBondQueryItem)
-        self.Bind(wx.EVT_MENU,self.onClientQuery,tradeHistoryMenuClientQueryItem)
-        self.Bind(wx.EVT_MENU,self.onSalesPersonQuery,tradeHistoryMenuSalesPersonQueryItem)
-        self.Bind(wx.EVT_MENU,self.onIssuerQuery,tradeHistoryMenuIssuerQueryItem)
-        self.Bind(wx.EVT_MENU,self.onCountryQuery,tradeHistoryMenuCountryQueryItem)
-        self.Bind(wx.EVT_MENU,self.onAdvancedQuery,tradeHistoryMenuAdvancedQueryItem)
-        self.Bind(wx.EVT_MENU,self.onMonthlyQuery,tradeHistoryMenuMonthlyQueryItem)
-        self.Bind(wx.EVT_MENU,self.onClientTradingReport,clientTradingReportItem)
+        self.Bind(wx.EVT_MENU, self.onBondQuery,tradeHistoryMenuBondQueryItem)
+        self.Bind(wx.EVT_MENU, self.onQuickBondQuery,tradeHistoryMenuQuickBondQueryItem)
+        self.Bind(wx.EVT_MENU, self.onClientQuery,tradeHistoryMenuClientQueryItem)
+        self.Bind(wx.EVT_MENU, self.onSalesPersonQuery,tradeHistoryMenuSalesPersonQueryItem)
+        self.Bind(wx.EVT_MENU, self.onIssuerQuery,tradeHistoryMenuIssuerQueryItem)
+        self.Bind(wx.EVT_MENU, self.onCountryQuery,tradeHistoryMenuCountryQueryItem)
+        self.Bind(wx.EVT_MENU, self.onAdvancedQuery,tradeHistoryMenuAdvancedQueryItem)
+        self.Bind(wx.EVT_MENU, self.onMonthlyQuery,tradeHistoryMenuMonthlyQueryItem)
+        self.Bind(wx.EVT_MENU, self.onClientTradingReport,clientTradingReportItem)
 
-        self.Bind(wx.EVT_MENU,self.onAfricaWeekly, africaWeeklyItem)
-        self.Bind(wx.EVT_MENU,self.onCeeWeekly, ceeWeeklyItem)
-        self.Bind(wx.EVT_MENU,self.onCisWeekly, cisWeeklyItem)
-        self.Bind(wx.EVT_MENU,self.onEurozoneWeekly, eurozoneWeeklyItem)
-        self.Bind(wx.EVT_MENU,self.onMaDataReportItem, maDataReportItem)
-        self.Bind(wx.EVT_MENU,self.onMaHotAndColdItem, maHotAndColdItem)
+        self.Bind(wx.EVT_MENU, self.onAfricaWeekly, africaWeeklyItem)
+        self.Bind(wx.EVT_MENU, self.onCeeWeekly, ceeWeeklyItem)
+        self.Bind(wx.EVT_MENU, self.onCisWeekly, cisWeeklyItem)
+        self.Bind(wx.EVT_MENU, self.onEurozoneWeekly, eurozoneWeeklyItem)
+        self.Bind(wx.EVT_MENU, self.onMaDataReportItem, maDataReportItem)
+        self.Bind(wx.EVT_MENU, self.onMaHotAndColdItem, maHotAndColdItem)
 
-        self.Bind(wx.EVT_MENU,self.onBuildModelPortfolioButton,buildModelPortfolioItem)
-        self.Bind(wx.EVT_MENU,self.onPrintModelPortfolio,printModelPortfolioItem)
-        self.Bind(wx.EVT_MENU,self.onPerformanceChartModelPortfolio,performanceChartModelPortfolioItem)
-        self.Bind(wx.EVT_MENU,self.onSendModelPortfolioEmail,sendModelPortfolioEmail)
+        self.Bind(wx.EVT_MENU, self.onBuildModelPortfolioButton,buildModelPortfolioItem)
+        self.Bind(wx.EVT_MENU, self.onPrintModelPortfolio,printModelPortfolioItem)
+        self.Bind(wx.EVT_MENU, self.onPerformanceChartModelPortfolio,performanceChartModelPortfolioItem)
+        self.Bind(wx.EVT_MENU, self.onSendModelPortfolioEmail,sendModelPortfolioEmail)
 
-        self.Bind(wx.EVT_MENU,self.onOpenRepos,openRepos)
-        self.Bind(wx.EVT_MENU,self.onUpdateBondUniverse,adminMenuUpdateBondUniverseItem)
-        self.Bind(wx.EVT_MENU,self.onNewClientReport,newClientReportItem)
-        self.Bind(wx.EVT_MENU,self.onRegs144aReport,regs144aReportItem)
-        self.Bind(wx.EVT_MENU,self.onHighSCCheckItem,highSCCheckItem)
-        self.Bind(wx.EVT_MENU,self.onForceRebuildTradeHistory,forceRebuildTradeHistoryItem)
+        self.Bind(wx.EVT_MENU, self.onOpenRepos,openRepos)
+        self.Bind(wx.EVT_MENU, self.onUpdateBondUniverse,adminMenuUpdateBondUniverseItem)
+        self.Bind(wx.EVT_MENU, self.onNewClientReport,newClientReportItem)
+        self.Bind(wx.EVT_MENU, self.onRegs144aReport,regs144aReportItem)
+        self.Bind(wx.EVT_MENU, self.onHighSCCheckItem,highSCCheckItem)
+        self.Bind(wx.EVT_MENU, self.onForceRebuildTradeHistory,forceRebuildTradeHistoryItem)
 
          ############CREATE PANEL AND BUTTONS############
         self.panel = wx.Panel(self, wx.ID_ANY)
@@ -401,7 +401,7 @@ class MainForm(wx.Frame):
         wx.CallAfter(self.buildRiskPanel)
 
     ############GENERIC DIALOG BOXES############
-    def comboQuery(self, event, title,question,choices):
+    def comboQuery(self, event, title, question, choices):
         """Function to create combo dialog
 
         Keyword arguments:
@@ -409,7 +409,7 @@ class MainForm(wx.Frame):
         question : question
         choices : choices
         """
-        dlg = ComboDialog(title,question,choices)
+        dlg = ComboDialog(title, question, choices)
         res = dlg.ShowModal()
         dlg.Destroy()
         if res == wx.ID_OK:
@@ -432,8 +432,9 @@ class MainForm(wx.Frame):
         if res == wx.ID_OK:
             data = []
             cblist = dlg.comboBoxList
-            for x in cblist:
-                data.append(x.GetValue())
+            data = [x.GetValue() for x in cblist]
+            # for x in cblist:
+            #     data.append(x.GetValue())
             return data
         else:
             return ''
@@ -518,7 +519,7 @@ class MainForm(wx.Frame):
         self.log.Clear()
         info = wx.AboutDialogInfo()
         info.Name = "Flow Trading Tools"
-        info.Version = "6.1-20170224"
+        info.Version = "6.3-20170824"
         info.Copyright = "(C) 2014-2017 Alexandre Almosni"
         info.Description = wordwrap("All data is indicative. Use at your own risk.",350, wx.ClientDC(self.panel))
         #info.WebSite = ("http://www.pythonlibrary.org", "My Home Page")
@@ -546,17 +547,17 @@ class MainForm(wx.Frame):
         pass
 
     ############TRADE HISTORY ACTIONS############
-    def onBondQuery(self,event):
+    def onBondQuery(self, event):
         """Function to query bond
         """
-        bondname=self.comboQuery(event,'Bond query','Bond name?',self.bondlist)
+        bondname = self.comboQuery(event, 'Bond query', 'Bond name?', self.bondlist)
         self.onBondQuerySub(bondname)
         pass
 
-    def onQuickBondQuery(self,event):
+    def onQuickBondQuery(self, event):
         """Function for quick bond query. 
         """
-        bondname = self.textQuery(event,'Bond name?').upper()
+        bondname = self.textQuery(event, 'Bond name?').upper()
         if  (bondname in bonds.index):
             self.onBondQuerySub(bondname)
         else:
@@ -571,7 +572,7 @@ class MainForm(wx.Frame):
         # else:
         #     self.notebook.SetSelection(0)
         #     print item + ' cannot be found.'
-        item = self.textQuery(event,'Bond or issuer name?')
+        item = self.textQuery(event, 'Bond or issuer name?')
         self.tabRisk.onRiskTreeQuery(event, item)
 
     def onBondQuerySub(self,bondname):
@@ -868,7 +869,7 @@ class MainForm(wx.Frame):
         """
         self.log.Clear()
         questionlist = ['Year?','Month?','Cutoff SC?']
-        choiceList = [['2016','2015','2014','2013','2012','2011','2010','2009'],['Full Year','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],['25','50','100']]
+        choiceList = [['2017','2016','2015','2014','2013','2012','2011','2010','2009'],['Full Year','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],['25','50','100']]
         data = self.multipleComboQuery(event,'SC check',questionlist,choiceList)
         year = int(data[0])
         month = [i for i,x in enumerate(choiceList[1]) if x == data[1]][0]
@@ -901,7 +902,7 @@ class MainForm(wx.Frame):
         questionlist = ['Days to analyze:', 'Bond tail:']
         choiceList = [['7', '14', '30', '1', '2', '3'], ['20', '50', '100']]
         data = self.multipleComboQuery(event, 'MarketAxess hot and cold', questionlist, choiceList)
-        print self.ma.hot_and_cold(int(data[0]), int(data[1]))
+        self.ma.hot_and_cold(int(data[0]), int(data[1]))
         pass
 
 

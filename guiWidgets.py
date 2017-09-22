@@ -541,6 +541,7 @@ class GenericDisplayGrid(gridlib.Grid):
         # If Ctrl+C is pressed...
         if event.ControlDown() and event.GetKeyCode() == 67:
             self.copy()
+        event.Skip()
 
     def copy(self):
         # Number of rows and cols

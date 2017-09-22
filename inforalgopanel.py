@@ -11,7 +11,9 @@ import wx
 import wx.grid as gridlib
 import inforalgo
 from wx.lib.scrolledpanel import ScrolledPanel
+import pandas
 
+from StaticDataImport import DEFPATH
 # def wxdate2pydate(date):
 #     """Function to convert wx.datetime to datetime.datetime format
 #     """
@@ -96,6 +98,14 @@ class InforalgoControlPanel(ScrolledPanel):
         self.sizerDeleteAllRecords.Add(txtDeleteAllPricerWarning,proportion=0,flag=wx.ALL,border=5)
         self.sizerDeleteAllRecords.Add(self.isinDeleteAllCtrl,proportion=0,flag=wx.ALL,border=5)
         self.sizerDeleteAllRecords.Add(self.isinDeleteAllButton,proportion=0,flag=wx.ALL,border=5)
+        #UPDATE ASIA PRICES FROM BBG
+        self.boxUpdateAsiaRecords = wx.StaticBox(self,label = 'Update Asia prices')
+        self.sizerUpdateAsiaRecords = wx.StaticBoxSizer(self.boxUpdateAsiaRecords,wx.HORIZONTAL)
+        txtUpdateAsiaRecords = wx.StaticText(self, label="Send all Bloomberg prices into Inforalgo")
+        self.updateAsiaRecordsButton = wx.Button(self, label = "Update!")
+        self.updateAsiaRecordsButton.Bind(wx.EVT_BUTTON, self.onUpdateTableFromBbgButton)
+        self.sizerUpdateAsiaRecords.Add(txtUpdateAsiaRecords,proportion=0,flag=wx.ALL,border=5)
+        self.sizerUpdateAsiaRecords.Add(self.updateAsiaRecordsButton,proportion=0,flag=wx.ALL,border=5)
         #INFORALGO PRD TABLE DISPLAY
         self.boxPRDTableDisplay = wx.StaticBox(self,label = 'Inforalgo PRD table contents')
         self.sizerPRDTableDisplay = wx.StaticBoxSizer(self.boxPRDTableDisplay,wx.VERTICAL)   
@@ -145,6 +155,7 @@ class InforalgoControlPanel(ScrolledPanel):
         self.hSizerUpdatePrices = wx.BoxSizer(wx.HORIZONTAL)
         self.hSizerUpdatePrices.Add(self.sizerUpdateTimeStampsRecords, 1, wx.ALL|wx.EXPAND, 10)
         self.hSizerUpdatePrices.Add(self.sizerUpdateFromTable, 1, wx.ALL|wx.EXPAND, 10)
+        self.hSizerUpdatePrices.Add(self.sizerUpdateAsiaRecords, 1, wx.ALL|wx.EXPAND, 10)
         self.topSizer.Add(self.hSizerUpdatePrices, 0, wx.ALL|wx.EXPAND, 10)
         self.topSizer.Add(self.sizerPRDTableDisplay, 0, wx.ALL|wx.EXPAND, 10)
         self.topSizer.Add(self.sizerTableDisplay, 0, wx.ALL|wx.EXPAND, 10)
@@ -255,6 +266,32 @@ class InforalgoControlPanel(ScrolledPanel):
                 except:
                     print 'PRD failed to send price for ' + row['bbrgSec6id']
         pass
+
+    def onUpdateTableFromBbgButton(self, event):
+        '''
+        Pushing the Asia bbg prices back into the inforalgo table
+        '''
+        bondList = []
+        for label in ['AsiaSov', 'AsiaHY', 'AsiaIG']:#
+            csv = pandas.read_csv(DEFPATH+label+'Tab.csv')
+            list(csv['Bonds'].dropna().values)
+            bondList.extend(list(csv['Bonds'].dropna().values))
+
+        for bond in bondList:
+            if bond not in self.bdm.df.index:
+                continue
+            bonddata = self.bdm.df.loc[bond]
+            try:
+                self.uat_table.send_price(bonddata['ISIN'], bonddata['BID'], bonddata['ASK'], int(float(bonddata['BID_SIZE'])), int(float(bonddata['ASK_SIZE'])))
+            except:
+                print 'Failed to send price for ' + bonddata['ISIN']
+            try:
+                self.prd_table.send_price(bonddata['ISIN'], bonddata['BID'], bonddata['ASK'], int(float(bonddata['BID_SIZE'])), int(float(bonddata['ASK_SIZE'])))
+            except:
+                print 'PRD failed to send price for ' + bonddata['ISIN']
+        pass
+
+
 
     def onRefreshButtonPRD(self, event):
         self.inforalgoGridPRD.ClearGrid()
