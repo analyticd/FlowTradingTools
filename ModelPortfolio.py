@@ -1,7 +1,7 @@
 """
 Model portfolio creation and analytics / charting
 Written by Alexandre Almosni   alexandre.almosni@gmail.com
-(C) 2014-2015 Alexandre Almosni
+(C) 2014-2017 Alexandre Almosni
 Released under Apache 2.0 license. More info at http://www.apache.org/licenses/LICENSE-2.0
 
 Functions:
@@ -251,7 +251,7 @@ class Builder():
         return self.bonds
 
     def load_historical_bond_prices(self,trades,mp_bonds):
-        startdate = trades['Date'].min().to_datetime()
+        startdate = pandas.to_datetime(trades['Date'].min())
         securities = map(lambda b:bonds.loc[b,'REGS'] + BBGHand + ' Corp',mp_bonds)
         b_to_sec_dic = dict(zip(mp_bonds,securities))
         out = blpapiwrapper.simpleHistoryRequest(securities,['PX_BID','PX_ASK'],startdate,TODAY)
@@ -414,7 +414,7 @@ class Analytics:
 
     def __reindex_assets__(self,days,ust):
         out=self.assets.reindex(index=days,method='pad')
-        out=out/out.ix[0]*100
+        out=out/out.iloc[0]*100
         del out['UST10y']
         out['UST10y']=ust
         del out['ModelPortfolio']

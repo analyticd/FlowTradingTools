@@ -12,6 +12,8 @@ StreamWatcher: helper class to send analytics data (both real time price data an
 
 Functions:
 getMaturityDate(): helper function to convert Bloomberg date format to datetime format
+
+BGN IS ACTUALLY SOURCED FROM CBBT
 """
 import wx
 from wx.lib.pubsub import pub
@@ -25,7 +27,7 @@ import time
 from win32api import GetUserName
 from enum import Enum
 
-from StaticDataImport import ccy, countries, bonds, TEMPPATH, bonduniverseexclusionsList, frontToEmail, SPECIALBONDS, SINKABLEBONDS, BBGHand, regsToBondName, bbgToBdmDic, PHPATH, traderLogins
+from StaticDataImport import ccy, countries, bonds, TEMPPATH, bonduniverseexclusionsList, frontToEmail, BBGHand, regsToBondName, bbgToBdmDic, PHPATH, traderLogins#SPECIALBONDS, SINKABLEBONDS,
 
 
 
@@ -79,7 +81,7 @@ class BDMdata(wx.Timer):
     def __init__(self, secs, bdm):
         wx.Timer.__init__(self)
         self.bdm = bdm
-        self.dic = pandas.Series((self.bdm.df['ISIN'] + '@BGN Corp').values, index=self.bdm.df.index).to_dict()
+        self.dic = pandas.Series((self.bdm.df['ISIN'] + '@CBBT Corp').values, index=self.bdm.df.index).to_dict()
         self.Bind(wx.EVT_TIMER, self.refreshBDMPrice)
         self.Start(1000 * secs, oneShot=False)
 
@@ -157,7 +159,7 @@ class BondDataModel():
 
         # Static columns either in bonduniverse or directly derived from it
         colsDescription = ['ISIN', 'BOND', 'SERIES', 'CRNCY', 'MATURITY', 'COUPON', 'AMT_OUTSTANDING', 'SECURITY_NAME',
-                           'INDUSTRY_GROUP', 'CNTRY_OF_RISK', 'TICKER', 'MATURITYDT']
+                           'INDUSTRY_GROUP', 'CNTRY_OF_RISK', 'TICKER', 'MATURITYDT', 'SINKABLE', 'FLOATER']
         # these columns will feed from Bloomberg (or Front) and be regenerated only once
         colsPriceHistory = ['P1DFRT', 'P1D', 'P1W', 'P1M', 'Y1D', 'Y1W', 'Y1M', 'SAVG', 'ISP1D','ISP1W','ISP1M', 'PRINCIPAL_FACTOR']#'INTSWAP1D','INTSWAP1W','INTSWAP1M',
         # these will feed from Bloomberg only once
@@ -256,7 +258,7 @@ class BondDataModel():
                 self.df.at[bond, bbgToBdmDic[item]] = value
             self.lock.release()
             if (data['BID'] != self.df.at[bond, 'OLDBID']) or (data['ASK'] != self.df.at[bond, 'OLDASK']):
-                if bond in SPECIALBONDS:
+                if bond in self.SPECIALBONDS:
                     self.blptsAnalytics.get(isin + BBGHand + ' Corp', self.bbgPriceSpecialQuery)
                 else:
                     self.blptsAnalytics.get(isin + BBGHand + ' Corp', self.bbgPriceQuery)
@@ -285,7 +287,7 @@ class BondDataModel():
                 self.lock.release()
                 print data
             self.lock.release()
-            if bond in SINKABLEBONDS:
+            if bond in self.SINKABLEBONDS:
                 #self.bbgSinkRequest.fillRequest(isin + ' Corp', ['YAS_ZSPREAD'], strOverrideField='YAS_BOND_PX', strOverrideValue=data['BID'])
                 self.bbgSinkRequest.fillRequest(isin + ' Corp', ['YAS_ZSPREAD'], strOverrideField='YAS_BOND_PX', strOverrideValue=self.df.at[bond, 'BID'])
                 self.bbgSinkRequest.get()
@@ -364,7 +366,7 @@ class BondDataModel():
         # Risk free bonds: no streaming as too many updates - poll every 15 minutes
         rfRequest = blpapiwrapper.BLPTS(list((self.rfbondsisins + '@CBBT' + ' Corp').astype(str)), self.bbgPriceRFQuery)
         self.RFtimer = RFdata(900, rfRequest, self)
-        self.BDMdata = BDMdata(900, self) #15 MINUTES
+        self.BDMdata = BDMdata(600, self) #10 MINUTES
         self.BDMEODsave = BDMEODsave(self)
 
     def firstPass(self, priorityBondList=[]):
@@ -396,13 +398,14 @@ class BondDataModel():
         blpts.get()
         blpts.closeSession()
 
-        specialBondList = list(set(emptyLines) & set(SPECIALBONDS))
-        specialIsins = map(lambda x:self.df.at[x,'ISIN'] + BBGHand + ' Corp',specialBondList)
-        blpts = blpapiwrapper.BLPTS(specialIsins, self.bbgPriceLongSpecialQuery)
-        specialbondStream = StreamWatcher(self,BloombergQuery.FIRSTPASS)
-        blpts.register(specialbondStream)
-        blpts.get()
-        blpts.closeSession()
+        specialBondList = list(set(emptyLines) & set(self.SPECIALBONDS))
+        if len(specialBondList) > 0:
+            specialIsins = map(lambda x:self.df.at[x,'ISIN'] + BBGHand + ' Corp',specialBondList)
+            blpts = blpapiwrapper.BLPTS(specialIsins, self.bbgPriceLongSpecialQuery)
+            specialbondStream = StreamWatcher(self,BloombergQuery.FIRSTPASS)
+            blpts.register(specialbondStream)
+            blpts.get()
+            blpts.closeSession()
 
         for bond in emptyLines:
             self.updateStaticAnalytics(bond)  # This will update benchmarks and fill grid. Has to be done here so all data for benchmarks is ready.
@@ -433,14 +436,14 @@ class BondDataModel():
         self.buildPriceHistory()
         savepath = TEMPPATH + 'bondhistoryrating.csv'
         #If bondhistoryratingUAT.csv doesn't exist, download data and write file.
-        cols = ['SNP', 'MDY', 'FTC', 'P1D', 'P1W', 'P1M', 'Y1D', 'Y1W', 'Y1M', 'ACCRUED', 'D2CPN', 'SAVG', 'ISP1D', 'ISP1W', 'ISP1M', 'RISK_MID', 'PRINCIPAL_FACTOR', 'SIZE']
+        cols = ['SNP', 'MDY', 'FTC', 'P1D', 'P1W', 'P1M', 'Y1D', 'Y1W', 'Y1M', 'ACCRUED', 'D2CPN', 'SAVG', 'ISP1D', 'ISP1W', 'ISP1M', 'RISK_MID', 'PRINCIPAL_FACTOR', 'SIZE', 'SINKABLE', 'FLOATER']
         if not (os.path.exists(savepath)) or datetime.datetime.fromtimestamp(
                 os.path.getmtime(savepath)).date() < datetime.datetime.today().date():
             isins = self.df['ISIN'] + BBGHand + ' Corp'
             isins = list(isins.astype(str))
 
             ##
-            flds = ['RTG_SP', 'RTG_MOODY', 'RTG_FITCH', 'INT_ACC', 'DAYS_TO_NEXT_COUPON', 'YRS_TO_SHORTEST_AVG_LIFE', 'RISK_MID', 'PRINCIPAL_FACTOR', 'AMT_OUTSTANDING']
+            flds = ['RTG_SP', 'RTG_MOODY', 'RTG_FITCH', 'INT_ACC', 'DAYS_TO_NEXT_COUPON', 'YRS_TO_SHORTEST_AVG_LIFE', 'RISK_MID', 'PRINCIPAL_FACTOR', 'AMT_OUTSTANDING', 'SINKABLE', 'FLOATER']
             out = blpapiwrapper.simpleReferenceDataRequest(pandas.Series((self.df['ISIN'] + ' Corp').values, index=self.df.index).to_dict(),flds)[flds]
             #loop
             for f in flds:
@@ -499,6 +502,10 @@ class BondDataModel():
             self.df['D2CPN'].fillna(-1, inplace=True)#HACK SO NEXT LINE DOESN'T BLOW UP - WE DON'T WANT TO PUT 0 THERE!
             self.df['D2CPN'] = self.df['D2CPN'].astype(int)          
 
+        self.df['SINKABLE'] = pandas.np.where(self.df['SINKABLE']=='Y',1,0)#should save memory
+        self.df['FLOATER'] = pandas.np.where(self.df['FLOATER']=='Y',1,0)#should save memory
+        self.SINKABLEBONDS = list(self.df[self.df['SINKABLE'] == 1].index)
+        self.SPECIALBONDS = list(self.df[self.df['FLOATER'] == 1].index)
         print 'History fetched in: ' + str(int(time.time() - time_start)) + ' seconds.'
 
     def updateBenchmarks(self):

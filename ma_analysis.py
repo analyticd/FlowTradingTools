@@ -169,7 +169,7 @@ class FullMarketAxessData():
         subdf = self.df.loc[self.df['Date']==dts]
         grp1 = subdf.groupby('Counterparty')
         sg = grp1.sum()
-        out = sg[(sg['USDQty']>=2000) | (sg['USDQty']<-2000)]
+        out = sg[(sg['USDQty']>=5000) | (sg['USDQty']<-5000)]
         print out['USDQty'].apply(lambda y:'{:,.0f}'.format(y))
         #print ''
         #grp2=self.df.groupby(['MACounterparty','Country'])
@@ -180,10 +180,10 @@ class FullMarketAxessData():
         dts = dt.date()
         subdf = self.df.loc[self.df['Date']==dts]
         grp1 = subdf.groupby('Region')
-        print grp1[['USDQty']].sum().loc[['Africa','CEE','CIS']].applymap(lambda y:'{:,.0f}'.format(y))
+        print grp1[['USDQty']].sum().loc[['Africa','CEE','CIS','Latam', 'Asia']].applymap(lambda y:'{:,.0f}'.format(y))
         print ''
         grp2 = subdf.groupby(['Region','Country'])
-        print grp2[['USDQty']].sum().loc[['Africa','CEE','CIS']].applymap(lambda y:'{:,.0f}'.format(y))
+        print grp2[['USDQty']].sum().loc[['Africa','CEE','CIS', 'Latam', 'Asia']].applymap(lambda y:'{:,.0f}'.format(y))
         pass
 
     def full_report(self, dt):
@@ -193,12 +193,12 @@ class FullMarketAxessData():
         self.total_report(dt)
         print ''
         print '=============================================='
-        print 'Enquiries by region (only accurate for EMEA):'
+        print 'Enquiries by region:'
         print '=============================================='
         self.region_report(dt)
         print ''
         print '=============================================='
-        print 'Enquiries by client (showing >$2mm net):'
+        print 'Enquiries by client (>5mm net):'
         print '=============================================='
         self.client_report(dt)
         print ''

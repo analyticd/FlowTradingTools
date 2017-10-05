@@ -442,9 +442,21 @@ class TradeActivityTabPanel(wx.Panel):
         """
         self.topSizer = wx.BoxSizer(wx.VERTICAL)
         self.lastUpdateTime = wx.StaticText(self,-1,self.lastUpdateString())
-        self.topSizer.Add(self.lastUpdateTime,0,wx.LEFT|wx.TOP,20)
+        self.topSizer.Add(self.lastUpdateTime,0,wx.LEFT|wx.TOP,10)
         self.tradeActivityGrid = TradeActivityGrid(self,self.th)
-        self.topSizer.Add(self.tradeActivityGrid,0,wx.LEFT,20)
+        self.riskChangeGrid = RiskChangeGrid(self,self.th)
+        self.bondsTraded = wx.TextCtrl(self, -1,"",size=(300, 400), style=wx.TE_MULTILINE|wx.TE_READONLY)#
+        self.bondsTraded.SetValue('No trades yet.')
+        self.bondsTraded.SetFont(wx.Font(self.bondsTraded.GetFont().GetPointSize(), wx.TELETYPE, wx.NORMAL, wx.NORMAL))
+        self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.hSizer.Add(self.tradeActivityGrid,0,wx.RIGHT,10)
+        
+        self.v2Sizer = wx.BoxSizer(wx.VERTICAL)
+        self.v2Sizer.Add(self.riskChangeGrid,0,wx.BOTTOM,10)
+        self.v2Sizer.Add(self.bondsTraded,0,wx.TOP,10)
+
+        self.hSizer.Add(self.v2Sizer,0,wx.LEFT,10)
+        self.topSizer.Add(self.hSizer,0,wx.ALL,10)
         self.SetSizer(self.topSizer)
         self.Layout()
         pass
@@ -452,7 +464,11 @@ class TradeActivityTabPanel(wx.Panel):
     def updatePositions(self,message=None):
         """event listener for the POSITION_UPDATE event. Updates position when the event is publicised 
         """
+        x = self.th.createOneDayTrades(self.mainframe.todayDT.strftime('%d/%m/%y'))
+        lbonds = list(x['Bond'].drop_duplicates().sort_values().values)
+        self.bondsTraded.SetValue('Bonds traded: ' + ', '.join(lbonds))
         self.tradeActivityGrid.fillGrid(self.mainframe.todayDT.strftime('%d/%m/%y'))
+        self.riskChangeGrid.fillGrid(self.mainframe.todayDT.strftime('%d/%m/%y'))
         self.lastUpdateTime.SetLabel(self.lastUpdateString())
         pass
 
@@ -591,6 +607,7 @@ class TradeActivityGrid(GenericDisplayGrid):
         rAttr.SetAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE)
         colAttrs = [dAttr,dAttr,rAttr,rAttr,dAttr,dAttr,rAttr,rAttr,dAttr]
         GenericDisplayGrid.__init__(self,panel,250,9,colHeaders,colSizes,colAttrs,wx.SHOW_SB_NEVER,wx.SHOW_SB_DEFAULT)
+        self.SetRowLabelSize(25)
 
     def fillGrid(self,date):
         subdfview = self.th.createOneDayTrades(date)
@@ -608,6 +625,47 @@ class TradeActivityGrid(GenericDisplayGrid):
             self.SetCellValue(rowindex,7,'{:.1f}'.format(row.iat[7]))
             rowindex = rowindex + 1
         self.SetCellValue(rowindex,0,'END')
+
+class RiskChangeGrid(GenericDisplayGrid):
+    def __init__(self, panel, th):
+        self.th = th
+        colHeaders = ['Book','Buys','Sells','Net','Gross','']
+        colSizes = [75,75,75,75,75,10]
+        dAttr = wx.grid.GridCellAttr()
+        rAttr = wx.grid.GridCellAttr()
+        rAttr.SetAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE)
+        colAttrs = [dAttr,rAttr,rAttr,rAttr,rAttr,dAttr]
+        GenericDisplayGrid.__init__(self,panel,15,6,colHeaders,colSizes,colAttrs,wx.SHOW_SB_NEVER,wx.SHOW_SB_DEFAULT)
+        self.SetRowLabelSize(25)
+
+    def fillGrid(self,date):
+        subdfview = self.th.createOneDayTrades(date)
+        subdfview = subdfview[subdfview['Counterparty']!='EXCHANGE'].copy()#get rid of regs/144a
+        subdfview['buys'] = 0
+        subdfview['sells'] = 0
+        subdfview.loc[subdfview['Qty']>0,'buys'] = subdfview['Qty']
+        subdfview.loc[subdfview['Qty']<0,'sells'] = subdfview['Qty']
+        grp = subdfview.groupby('Book').sum()
+        rowindex = 0
+        for (i,row) in grp.iterrows():
+            if rowindex % 2:
+                self.SetRowAttr(rowindex,self.oddlineattr.Clone())#this clone thing is needed in wxPython 3.0 (worked fine without in 2.8)
+            self.SetCellValue(rowindex,0,i)
+            self.SetCellValue(rowindex,1,'{:,.0f}'.format(row.buys))
+            self.SetCellValue(rowindex,2,'{:,.0f}'.format(row.sells))
+            self.SetCellValue(rowindex,3,'{:,.0f}'.format(row.Qty))
+            self.SetCellValue(rowindex,4,'{:,.0f}'.format(row.buys-row.sells))
+            rowindex = rowindex + 1
+        if rowindex % 2:
+            self.SetRowAttr(rowindex,self.oddlineattr.Clone())#this clone thing is needed in wxPython 3.0 (worked fine without in 2.8)
+        self.SetCellValue(rowindex,0,'TOTAL')
+        self.SetCellValue(rowindex,1,'{:,.0f}'.format(subdfview.buys.sum()))
+        self.SetCellValue(rowindex,2,'{:,.0f}'.format(subdfview.sells.sum()))
+        self.SetCellValue(rowindex,3,'{:,.0f}'.format(subdfview.Qty.sum()))
+        self.SetCellValue(rowindex,4,'{:,.0f}'.format(subdfview.buys.sum()-subdfview.sells.sum()))
+
+
+
 
 
 class BondTradesGrid(GenericDisplayGrid):

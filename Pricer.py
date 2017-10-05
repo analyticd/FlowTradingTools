@@ -17,6 +17,7 @@ Classes:
 Functions:
     send_mail_via_com()
 
+BGN IS ACTUALLY SOURCED FROM CBBT
 """
 
 
@@ -87,7 +88,7 @@ class TextDisplayWindow(wx.Frame):
 
 
 class AxeGrid(wx.Frame):
-    def __init__(self, title, bdm, bondList):
+    def __init__(self, title, bdm, csv):
         wx.Frame.__init__(self, None, wx.ID_ANY, title, size=(800, 600))
         panel = wx.Panel(self)
         notebookPanel = wx.Panel(panel)
@@ -124,29 +125,38 @@ class AxeGrid(wx.Frame):
         self.magrid.SetRowLabelSize(100)
         #############################
         i = 0
-        for bond in bondList:
-            if bond not in bdm.df.index:
+        for bond in csv.index:
+            if pandas.isnull(bond) or (bond not in bdm.df.index):
+                continue
+            axe_type = csv.at[bond, 'AXE_TYPE']
+            if not axe_type in ['A', 'B', 'S']:
                 continue
             bonddata = bdm.df.loc[bond]
-            if abs(bonddata['POSITION'])<200000:
+            if axe_type == 'A' and abs(bonddata['POSITION'])<200000:
                 continue
             self.grid.SetRowLabelValue(i, bond)
             self.grid.SetCellValue(i, 0, bonddata['ISIN'])
             self.magrid.SetRowLabelValue(i, bond)
             self.magrid.SetCellValue(i, 0, bonddata['ISIN'])
-            if bonddata['POSITION']<0:
+            if axe_type =='A':
+                position = bonddata['POSITION'] / 1000.
+            else:
+                position = csv.at[bond, 'AXE_SIZE']
+                if csv.at[bond,'AXE_TYPE'] == 'B':
+                    position = -1 * position
+            if position<0:
                 self.grid.SetCellValue(i, 1, 'Y')
-                self.grid.SetCellValue(i, 2, '{:.0f}'.format(-bonddata['POSITION']/1000.))
+                self.grid.SetCellValue(i, 2, '{:.0f}'.format(-position))
                 self.grid.SetCellValue(i, 3, '{:,.3f}'.format(bonddata['BID']))
                 self.magrid.SetCellValue(i, 1, 'B')
                 self.magrid.SetCellValue(i, 3, '{:,.3f}'.format(bonddata['BID']))
-            if bonddata['POSITION']>0:
+            if position>0:
                 self.grid.SetCellValue(i, 4, 'Y')
-                self.grid.SetCellValue(i, 5, '{:.0f}'.format(bonddata['POSITION']/1000.))
+                self.grid.SetCellValue(i, 5, '{:.0f}'.format(position))
                 self.grid.SetCellValue(i, 6, '{:,.3f}'.format(bonddata['ASK']))
                 self.magrid.SetCellValue(i, 1, 'S')
                 self.magrid.SetCellValue(i, 3, '{:,.3f}'.format(bonddata['ASK']))
-            self.magrid.SetCellValue(i, 2, '{:.0f}'.format(abs(bonddata['POSITION']/1000.)))
+            self.magrid.SetCellValue(i, 2, '{:.0f}'.format(abs(position)))
             self.magrid.SetCellValue(i, 4, '200')
             self.magrid.SetCellValue(i, 5, 'APGSG')
             self.magrid.SetCellValue(i, 6, 'APGSG')
@@ -400,7 +410,7 @@ class PricingGrid(gridlib.Grid):
     """PricingGrid class : Class to define the pricing grid
 
     Attributes:
-    self.tab : pandas.DataFrame containing the names of the tabs to be created 
+    self.csv : pandas.DataFrame containing the names of the csvs to be created 
     self.bondList : list of bonds 
     self.columnList : list of columns 
     self.bondsWithBenchmark : list of bonds with Benchmarks
@@ -433,13 +443,13 @@ class PricingGrid(gridlib.Grid):
     Back to PricerWindow
     ---------------------    
     """
-    def __init__(self, panel, tab, columnList, bdm, pricer):
+    def __init__(self, panel, csv, columnList, bdm, pricer):
         """
         Init function defines columns attributes and binds right click event to the grids.
 
         Keyword arguments:
         panel : wx.Panel object
-        tab : pandas.DataFrame containing the names of the tabs to be created 
+        csv : pandas.DataFrame containing the names of the csvs to be created 
         columnList : list of columns
         bdm : BondDataModel class instance
         """
@@ -468,6 +478,11 @@ class PricingGrid(gridlib.Grid):
         bidasksizeinputattr.SetReadOnly(False)
         bidasksizeinputattr.SetAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE)
         bidasksizeinputattr.SetFont(self.fontBold)
+        centrealigninputattr = wx.grid.GridCellAttr()
+        centrealigninputattr.SetAlignment(wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
+        centrealigninputattr.SetReadOnly(False)
+        centrealigninputattr.SetTextColour(wx.BLUE)
+        centrealigninputattr.SetFont(self.fontBold)
         sendattr = wx.grid.GridCellAttr()
         sendattr.SetTextColour(wx.BLUE)
         sendattr.SetAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE)
@@ -483,13 +498,17 @@ class PricingGrid(gridlib.Grid):
         pub.subscribe(self.updatePositions, "POSITION_UPDATE")
         pub.subscribe(self.updateBGNPrices, "BGN_PRICE_UPDATE")
 
-        self.tab = tab
-        self.bondList = list(self.tab['Bonds'])
+        self.csv = csv
+        self.csv['AXE_TYPE'] = self.csv['AXE_TYPE'].astype(object)
+        #self.bondList = list(self.csv['Bonds'])
+        self.bondList = list(self.csv.index.dropna())
         self.columnList = columnList
-        self.bondsWithBenchmark = list(self.tab[self.tab['Benchmarks'].notnull()]['Bonds'])
+        #self.bondsWithBenchmark = list(self.csv[self.csv['Benchmarks'].notnull()]['Bonds'])
+        self.bondsWithBenchmark = list(self.csv[self.csv['Benchmarks'].notnull()].index)
 
-        self.bondToBenchmark = self.tab.loc[self.tab['Benchmarks'].notnull(),['Bonds','Benchmarks']].set_index('Bonds')['Benchmarks'].to_dict()
-
+        #self.bondToBenchmark = self.csv.loc[self.csv['Benchmarks'].notnull(),['Bonds','Benchmarks']].set_index('Bonds')['Benchmarks'].to_dict()
+        self.bondToBenchmark = self.csv.loc[self.csv['Benchmarks'].notnull(),'Benchmarks'].to_dict()
+        
         self.bdm = bdm
         self.pricer = pricer
         self.CreateGrid(len(self.bondList), len(self.columnList))
@@ -505,6 +524,7 @@ class PricingGrid(gridlib.Grid):
         colFormats.loc[colFormats['Format']=='DEFAULT', 'wxFormat'] = defattr
         colFormats.loc[colFormats['Format']=='BIDASKINPUT', 'wxFormat'] = bidaskinputattr
         colFormats.loc[colFormats['Format']=='BIDASKSIZEINPUT', 'wxFormat'] = bidasksizeinputattr
+        colFormats.loc[colFormats['Format']=='CENTREINPUT', 'wxFormat'] = centrealigninputattr
         for c in self.columnList:
             if c in colFormats.index:
                 self.SetColAttr(self.columnList.index(c), colFormats.loc[c, 'wxFormat'])
@@ -597,6 +617,16 @@ class PricingGrid(gridlib.Grid):
                             self.SetCellBackgroundColour(i, j, wx.RED)
                     if header in ['BID_S', 'ASK_S']:
                         self.SetCellValue(i,j,'{:,.0f}'.format(self.bdm.df.at[bond, header + 'IZE']/1000.))
+                    if header in ['AXE_TYPE', 'AXE_SIZE']:
+                        value = self.csv.at[bond, header]
+                        try:
+                            if pandas.notnull(value):
+                                if header == 'AXE_SIZE':
+                                    self.SetCellValue(i, j, '{:.0f}'.format(value))
+                                else:
+                                    self.SetCellValue(i, j, value)
+                        except:
+                            print header, i, j
                 else:
                     if j == 0:
                         self.SetCellValue(i, j, bond)
@@ -697,13 +727,20 @@ class PricingGrid(gridlib.Grid):
             strNewValue = self.GetCellValue(rowstart, col)
             self.onEditSingleCell(event)
             if self.selected_col_number == 1 and colID == 'BID':
-                for r in range(self.selected_row_number):
-                    if r==0:
-                        continue#already done above
-                    row = rowstart + r
-                    bond = self.GetCellValue(row,1)
+                for row in range(rowstart + 1, rowstart + self.selected_row_number):
+                #starting at + 1 because first bond already done
+                #for r in range(self.selected_row_number):
+                #    if r==0:
+                #        continue#already done above
+                    #row = rowstart + r
+                    bond = self.GetCellValue(row, self.bondCol)
+                    if bond == "":
+                        continue
                     oldValue = float(self.GetCellValue(row,col))
-                    newValue = self.readInput(oldValue,strNewValue)
+                    if strNewValue[-1] == 'b' or strNewValue[-1] == 'B':
+                        newValue = self.readInputBasisPoints(bond, oldValue, strNewValue)
+                    else:
+                        newValue = self.readInput(oldValue, strNewValue)
                     self.SetCellValue(row,col,'{:,.3f}'.format(newValue))
                     try:
                         oldOffer = float(self.GetCellValue(row, self.askCol))
@@ -717,23 +754,47 @@ class PricingGrid(gridlib.Grid):
         col = event.GetCol()
         bond = self.GetCellValue(row, self.bondCol)
         colID = self.GetColLabelValue(col)
-        try:
-            oldValue = float(event.GetString())
-        except:
-            oldValue = 0
-        strNewValue = self.GetCellValue(row,col)
-        newValue = self.readInput(oldValue,strNewValue)
-        if colID == 'BID' or colID == 'ASK':
-            self.SetCellValue(row, col, '{:,.3f}'.format(newValue))
-        if colID == 'BID_S' or colID == 'ASK_S':
-            self.SetCellValue(row, col, '{:,.0f}'.format(newValue))
-        if colID == 'BID':
+        if colID in ['BID', 'ASK', 'BID_S', 'ASK_S']:
             try:
-                oldOffer = float(self.GetCellValue(row, self.askCol))
+                oldValue = float(event.GetString())
             except:
-                oldOffer = 0
-            self.SetCellValue(row, self.askCol, '{:,.3f}'.format(newValue + oldOffer - oldValue))
-        self.sendUpdateToInforalgo(row)
+                oldValue = 0
+            strNewValue = self.GetCellValue(row,col)
+            if strNewValue[-1] == 'b' or strNewValue[-1] == 'B':
+                newValue = self.readInputBasisPoints(bond, oldValue, strNewValue)
+            else:
+                newValue = self.readInput(oldValue, strNewValue)
+            if colID == 'BID' or colID == 'ASK':
+                self.SetCellValue(row, col, '{:,.3f}'.format(newValue))
+            if colID == 'BID_S' or colID == 'ASK_S':
+                self.SetCellValue(row, col, '{:,.0f}'.format(newValue))
+            if colID == 'BID':
+                try:
+                    oldOffer = float(self.GetCellValue(row, self.askCol))
+                except:
+                    oldOffer = 0
+                self.SetCellValue(row, self.askCol, '{:,.3f}'.format(newValue + oldOffer - oldValue))
+            self.sendUpdateToInforalgo(row)
+        else:
+            if colID == 'AXE_TYPE':
+                strNewValue = self.GetCellValue(row,col).upper()
+                if not strNewValue in ['N', 'A', 'B', 'S']:
+                    self.SetCellValue(row, col, 'N')
+                else:
+                    self.SetCellValue(row, col, strNewValue)
+                if strNewValue in ['N', 'A']:
+                    self.SetCellValue(row, self.columnList.index('AXE_SIZE'), '0')
+                    self.csv.at[bond, 'AXE_SIZE'] = 0
+                self.csv.at[bond, 'AXE_TYPE'] = self.GetCellValue(row, col)
+            if colID == 'AXE_SIZE':
+                strNewValue = self.GetCellValue(row,col)
+                if self.GetCellValue(row, self.columnList.index('AXE_TYPE')) in ['N','A']:
+                    self.SetCellValue(row, col, '0')
+                try:
+                    float(strNewValue)
+                except ValueError:
+                    self.SetCellValue(row, col, '0')
+                self.csv.at[bond, 'AXE_SIZE'] = float(self.GetCellValue(row, col))
 
     def sendUpdateToInforalgo(self, row):
         wx.CallAfter(self.dataSentWarning,row)
@@ -757,9 +818,17 @@ class PricingGrid(gridlib.Grid):
             print 'Failed to send data to PRD server'
         pass
 
-    def basisPointShift(self,bond,oldValue,strNewValue):
-        delta = float(strNewValue[:-1])
-        pass
+    def readInputBasisPoints(self, bond, oldValue, strNewValue):
+        try:
+            delta = float(strNewValue[1:-1])
+        except:
+            delta = 0
+        if strNewValue[0] == '+':
+            newValue = oldValue - delta * self.bdm.df.at[bond,'RISK_MID'] / 100.
+        else:
+            newValue = oldValue + delta * self.bdm.df.at[bond,'RISK_MID'] / 100.
+        newValue = round(16*newValue) / 16 #solves issues with 1/16th increments
+        return newValue
 
     @staticmethod
     def readInput(oldValue, strNewValue):
@@ -780,7 +849,7 @@ class PricingGrid(gridlib.Grid):
                 newValue = oldValue + delta
             else:
                 newValue = oldValue - delta
-            newValue = round(16*newValue) / 16 #solves issues with 1/16th increments
+            newValue = round(16 * newValue) / 16 #solves issues with 1/16th increments
         else:
             try:
                 newValue = float(strNewValue)
@@ -1126,8 +1195,8 @@ class PricerWindow(wx.Frame):
         # grid_labels = ['Africa', 'IRHedges']# used for testing
         ####END DEBUG MODE######
         for label in grid_labels:#
-            csv = pandas.read_csv(DEFPATH+label+'Tab.csv')
-            csv['Bonds'].fillna('', inplace=True)
+            csv = pandas.read_csv(DEFPATH+label+'Tab.csv', index_col=0)
+            #csv['Bonds'].fillna('', inplace=True)
             tab = wx.Panel(parent=self.notebook)
             grid = PricingGrid(tab, csv, columnList, self.bdm, self)
             self.gridList.append(grid)
@@ -1171,7 +1240,7 @@ class PricerWindow(wx.Frame):
         #self.ratesUpdateTime = wx.TextCtrl(buttonsPanel, -1, 'Starting...')
         bloomButton = wx.Button(buttonsPanel, label="Restart Bbrg link")
         bloomButton.Bind(wx.EVT_BUTTON, self.onRestartBloombergConnection)
-        axeButton = wx.Button(buttonsPanel, label="Axe sheet")
+        axeButton = wx.Button(buttonsPanel, label="Save and display axes")
         axeButton.Bind(wx.EVT_BUTTON, self.onAxeSheet)
         #self.bloomUpdateTime = wx.TextCtrl(buttonsPanel, -1, 'Starting...')
         editTabButton = wx.Button(buttonsPanel, label='Edit tab')
@@ -1305,10 +1374,12 @@ class PricerWindow(wx.Frame):
         pass
 
     def onAxeSheet(self, event):
-        tabName = self.notebook.GetPageText(self.notebook.GetSelection())
-        csv = pandas.read_csv(DEFPATH+tabName+'Tab.csv')
-        csv['Bonds'].fillna('', inplace=True)
-        AxeGrid('Axe list: ' + tabName,self.bdm, csv['Bonds'])
+        # here I also save the sheet
+        n = self.notebook.GetSelection()
+        tabName = self.notebook.GetPageText(n)
+        csv = self.gridList[n-2].csv
+        csv.to_csv(DEFPATH+tabName+'Tab.csv', index_label='Bond') # remove 2 because you have inforalgo and runs first
+        AxeGrid('Axe list: ' + tabName, self.bdm, csv)
         pass
 
     def lastSwapRefreshTime(self):
@@ -1325,7 +1396,7 @@ class PricerWindow(wx.Frame):
         pass
 
     def updateBGNPrices(self, message=None):
-        self.statusbar.SetStatusText('Last BGN update: ' + datetime.datetime.now().strftime('%H:%M'),2)
+        self.statusbar.SetStatusText('Last CBBT update: ' + datetime.datetime.now().strftime('%H:%M'),2)
         pass
 
 

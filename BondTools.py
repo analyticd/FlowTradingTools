@@ -267,29 +267,11 @@ def refresh_bond_universe():
     """Function to refresh bond universe. Function is called by:
     FlowTradingGUI > MainForm.onUpdateBondUniverse()
     """
-    bonds = pandas.ExcelFile(DEFPATH+'bonduniverse.xls').parse('list',index_col=0,has_index_names=True)
+    bonds = pandas.ExcelFile(DEFPATH+'bonduniverse.xls').parse('list',index_col=0)
     targetBonds = (bonds.loc[pandas.isnull(bonds['SECURITY_NAME']),'REGS']+ ' Corp').to_dict()#this works better than coupon
     targetFields = list(set(bonds.columns)-set(['REGS','144A','TRADITION','BGC','GARBAN','TULLETT','GFI']))
     bonds.loc[targetBonds.keys(),targetFields] = blpapiwrapper.simpleReferenceDataRequest(targetBonds,targetFields)
     print bonds.loc[targetBonds.keys(),targetFields]
-    bonds.to_excel(DEFPATH+'bonduniverse.xls','list')
-    print 'The file bonduniverse.xls has been updated.'
-
-def refresh_bond_universe_old():
-    """Function to refresh bond universe. Function is called by:
-    FlowTradingGUI > MainForm.onUpdateBondUniverse()
-    """
-    bonds = pandas.ExcelFile(DEFPATH+'bonduniverse.xls').parse('list',index_col=0,has_index_names=True)
-    targetBonds = bonds[pandas.isnull(bonds['SECURITY_NAME'])]#this works better than coupon
-    targetFields = list(set(bonds.columns)-set(['REGS','144A','TRADITION','BGC','GARBAN','TULLETT','GFI']))
-    blpts = blpapiwrapper.BLPTS(list(targetBonds['REGS'] + ' Corp'), targetFields)
-    blpts.get()
-    blpts.closeSession()
-    blpts.output['REGS'] = blpts.output.index.str[:-5]
-    blpts.output['Bond'] = blpts.output['REGS'].replace(isinsregs)
-    blpts.output.set_index('Bond', inplace=True)
-    bonds.loc[blpts.output.index,targetFields]=blpts.output
-    print blpts.output
     bonds.to_excel(DEFPATH+'bonduniverse.xls','list')
     print 'The file bonduniverse.xls has been updated.'
 
@@ -603,8 +585,8 @@ class HistoryRequest(blpapiwrapper.Observer):
 def africa_weekly():
     """Function to plot weekly african charts.
     """
-    filename='AfricaCreditCharts-'+datetime.datetime.today().strftime('%d%b%Y')+'.pdf'
-    pp = PdfPages(TEMPPATH+filename)
+    filename = 'AfricaCreditCharts-' + datetime.datetime.today().strftime('%d%b%Y') + '.pdf'
+    pp = PdfPages(TEMPPATH + filename)
 
     for group in ['Sub Saharan sovereigns', 'South Africa', 'Nigeria', 'African banks']:
         print 'Creating z-spread vs. duration for '+group+'...'
@@ -613,7 +595,7 @@ def africa_weekly():
         plt.close()
 
     print 'Creating YTD total return...'
-    bondlist=BONDCHARTS['Sub Saharan sovereigns'].dropna().astype(str)
+    bondlist = BONDCHARTS['Sub Saharan sovereigns'].dropna().astype(str)
     ChartEngine(bondlist,ChartTypes.YTDPerformance,'Year to date total return',False,6,indexlist=['SBAFSOZ','JPEIGLBL'], PDF=True)
     pp.savefig()
     plt.close()
@@ -624,19 +606,16 @@ def africa_weekly():
     plt.close()
 
     print 'Creating Rating chart...'
-    #bondlist=['ANGOL','ESKOM23','ETHOPI','GABON24','GHANA23','IVYCST24','KENINT24','MEMATU','NGERIA23','REPCON','REPNAM25','RWANDA','SENEGL24','SOAF24','ZAMBIN24']#one bond per credit
     ChartEngine(BONDCHARTS['AfricaRating'].dropna().astype(str),ChartTypes.SpreadVsRating,'Spread vs. rating',False,6, PDF=True)
     pp.savefig()
     plt.close()
 
     print 'Creating Z-score vs. Africa...'
-    #bondlist=['ANGOL','ESKOM23','ETHOPI','GABON24','GHANA23','IVYCST24','KENINT24','MEMATU','NGERIA23','REPCON','REPNAM21','RWANDA','SENEGL24','SOAF24','ZAMBIN24']#one bond per credit
     ChartEngine(BONDCHARTS['AfricaZScores'].dropna().astype(str),ChartTypes.ZScoreVsIndex,'Historical Z-score vs. Africa index',False,6,index='SBAFSOZS', PDF=True)
     pp.savefig()
     plt.close()
 
     print 'Creating Z-score vs. EMBI...'
-    #bondlist=['ANGOL','ESKOM23','ETHOPI','GABON24','GHANA23','IVYCST24','KENINT24','MEMATU','NGERIA23','REPCON','REPNAM21','RWANDA','SENEGL24','SOAF24','ZAMBIN24']#one bond per credit
     ChartEngine(BONDCHARTS['AfricaZScores'].dropna().astype(str),ChartTypes.ZScoreVsIndex,'Historical Z-score vs. EMBI',False,6,index='JPEIGLBL', PDF=True)
     pp.savefig()
     plt.close()
@@ -655,7 +634,7 @@ def cee_weekly():
 
     for group in ['CEE USD Benchmarks','CEE EUR Benchmarks']:
         print 'Creating ' + group + ' charts'
-        bondlist=BONDCHARTS[group].dropna().astype(str)
+        bondlist = BONDCHARTS[group].dropna().astype(str)
         ChartEngine(bondlist,ChartTypes.SpreadVsDuration,group, False,6,colors=BONDCHARTCOLORS[group].dropna().astype(str), PDF=True)
         pp.savefig()
         plt.close()
@@ -688,16 +667,16 @@ def cis_weekly():
     filename='CISCreditCharts-'+datetime.datetime.today().strftime('%d%b%Y')+'.pdf'
     pp = PdfPages(TEMPPATH+filename)
 
-    for group in ['CIS Benchmarks']:
+    for group in ['CIS Sovereigns', 'Ukraine']:
         print 'Creating ' + group + ' charts'
-        bondlist=BONDCHARTS[group].dropna().astype(str)
-        ChartEngine(bondlist,ChartTypes.SpreadVsDuration,group, False,6,colors=BONDCHARTCOLORS[group].dropna().astype(str), PDF=True)
+        bondlist = BONDCHARTS[group].dropna().astype(str)
+        ChartEngine(bondlist,ChartTypes.SpreadVsDuration,'Z-spread: ' + group, False,6,colors=BONDCHARTCOLORS[group].dropna().astype(str), PDF=True)
         pp.savefig()
         plt.close()
-        ChartEngine(bondlist,ChartTypes.YTDPerformance,'Year to date total return',False,6,indexlist=['JPEIGLBL'], PDF=True)
+        ChartEngine(bondlist,ChartTypes.YTDPerformance,'YTD return: ' + group,False,6,indexlist=['JPEIGLBL'], PDF=True)
         pp.savefig()
         plt.close()
-        ChartEngine(bondlist,ChartTypes.YTDRange,'Year to date range',False,6, PDF=True)
+        ChartEngine(bondlist,ChartTypes.YTDRange,'YTD range: ' + group,False,6, PDF=True)
         pp.savefig()
         plt.close()
 

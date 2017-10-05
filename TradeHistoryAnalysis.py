@@ -259,7 +259,19 @@ class TradeHistory:
         """
         #Grouping by isin + date + counterparty on the assumption this will be a unique trade ID
         #Summing quantity and then taking max of sales credits to identify misbooked SC across fund splits.
-        self.df['id']=self.df['ISIN']+self.df['DateSTR']+self.df['Counterparty']+self.df['Book']#book avoids some mess-ups (ORIGN)
+        #self.df['id'] = self.df['ISIN']+self.df['DateSTR'] + self.df['Counterparty']
+        #self.df['id'] = self.df['id']+self.df['Book']#book avoids some mess-ups (ORIGN)
+        #self.df['id'] = self.df.apply(lambda row: row.ISIN + row.DateSTR + row.Counterparty + row.Book, axis=1)
+        tmpCounterparty = self.df['Counterparty'].copy()
+        tmpCounterparty.drop_duplicates(inplace=True)
+        indexTmpCounterparty = pandas.Index(tmpCounterparty)
+        self.df['CID'] = self.df['Counterparty'].apply(lambda x: indexTmpCounterparty.get_loc(x))
+        self.df['CID'] = self.df['CID'].astype(str)
+        self.df['id'] = self.df['ISIN'] + self.df['DateSTR'] + self.df['CID'] + self.df['Book']
+        #Counterparty was too long and overloading memory
+
+
+
         #SOLUTION BELOW NOT GOOD AS CAN HAVE 2X SAME TRADE SAME DATE SAME COUNTERPARTY SEE 1157974 AND 1158089
         #self.df=self.df.drop_duplicates()##JUST TO MAKE SURE - HAD A REPCAM BUG ON FRONT ID 1466149 - this was due to a duplicated counterparty
         tmp = self.df[['id','Qty','SCu','MKu']]
@@ -272,6 +284,7 @@ class TradeHistory:
         self.df['Qty'] = s
         self.df['SCu'] = sc
         self.df['MKu'] = mk
+        del self.df['CID']
         pass
 
     def postcleanup(self):

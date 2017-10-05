@@ -5,7 +5,7 @@ Written by Alexandre Almosni   alexandre.almosni@gmail.com
 Released under Apache 2.0 license. More info at http://www.apache.org/licenses/LICENSE-2.0
 """
 
-
+from __future__ import print_function
 from abc import ABCMeta, abstractmethod
 import blpapi
 import datetime
@@ -57,7 +57,7 @@ class BLP():
             if output == '#N/A':
                 output = pandas.np.nan
         except:
-            print 'error with '+strSecurity+' '+strData
+            print('error with '+strSecurity+' '+strData)
             output = pandas.np.nan
         return output
 
@@ -90,7 +90,7 @@ class BLP():
             output[strD] = [x.getElementAsFloat(strD) for x in fieldDataList]
 
         output.replace('#N/A History', pandas.np.nan, inplace=True)
-        output.index = output.index.to_datetime()
+        output.index = pandas.to_datetime(output.index)
         return output
 
     def bdhOHLC(self, strSecurity='SPX Index', startdate=datetime.date(2014, 1, 1), enddate=datetime.date(2014, 1, 9), periodicity='DAILY'):
@@ -205,7 +205,7 @@ class BLPTS():
                         fieldDataList  = [fieldDataArray.getValueAsElement(i) for i in range(0, fieldDataArray.numValues())]
                         dates          = map(lambda x: x.getElement(DATE).getValueAsString(), fieldDataList)
                         outDF          = pandas.DataFrame(index=dates, columns=self.fields)
-                        outDF.index    = outDF.index.to_datetime()
+                        outDF.index    = pandas.to_datetime(outDF.index)
 
                         for field in self.fields:
                             data = []
@@ -235,7 +235,7 @@ class BLPTS():
                         if n_elmts>0:
                             self.updateObservers(security=security, field='ALL', data=self.output.loc[security]) # update one security all fields
                         else:
-                            print 'Empty response received for ' + security
+                            print('Empty response received for ' + security)
 
             if event.eventType() == blpapi.event.Event.RESPONSE:
                 break
@@ -289,7 +289,7 @@ class BLPStream(threading.Thread):
         self.strDataList     = strDataList
 
         if len(strSecurityList) != len(intCorrIDList):
-            print 'Number of securities needs to match number of Correlation IDs, overwriting IDs'
+            print('Number of securities needs to match number of Correlation IDs, overwriting IDs')
             self.intCorrIDList = range(0, len(strSecurityList))
         else:
             self.intCorrIDList = intCorrIDList
@@ -336,7 +336,7 @@ class BLPStream(threading.Thread):
         corrID              = output.correlationIds()[0].value()
         security            = self.dictCorrID[corrID]
         isParsed            = False
-        #print output.toString()
+        #print(output.toString())
 
         if output.hasElement(EVENT_TIME):
             self.lastUpdateTimeBlmbrg = output.getElement(EVENT_TIME).toString()
@@ -348,24 +348,24 @@ class BLPStream(threading.Thread):
                     data = output.getElement(field).getValueAsFloat()
                 except:
                     data = pandas.np.nan
-                    print 'error: ',security,field#,output.getElement(field).getValueAsString() # this can still error if field is there but is empty
+                    print('error: ',security,field)#,output.getElement(field).getValueAsString() # this can still error if field is there but is empty
                 self.output.loc[security, field] = data
                 self.updateObservers(time=self.lastUpdateTime, security=security, field=field, corrID=corrID, data=data, bbgTime=self.lastUpdateTimeBlmbrg)
          
         # It can happen that you get an event without the data behind the event!
         self.updateObservers(time=self.lastUpdateTime, security=security, field='ALL', corrID=corrID, data=0, bbgTime=self.lastUpdateTimeBlmbrg)
         # if not isParsed:
-        #     print output.toString()
+        #     print(output.toString())
 
     def handleOtherEvent(self, event):
         output = blpapi.event.MessageIterator(event).next()
         msg = output.toString()
         if event.eventType() == blpapi.event.Event.AUTHORIZATION_STATUS:
-            print "Authorization event: " + msg
+            print("Authorization event: " + msg)
         elif event.eventType() == blpapi.event.Event.SUBSCRIPTION_STATUS:
-            print "Subscription status event: " + msg
+            print("Subscription status event: " + msg)
         else:
-            print "Other event: event "+str(event.eventType())
+            print("Other event: event "+str(event.eventType()))
 
     def closeSubscription(self):
         self.session.unsubscribe(self.subscriptionList)
@@ -456,13 +456,13 @@ def simpleHistoryRequest(securities=[], fields=[], startDate=datetime.datetime(2
 def excelEmulationExample():
     ##Examples of the Request/Response Paradigm
     bloomberg = BLP()
-    print bloomberg.bdp()
-    print ''
-    print bloomberg.bdp('US900123AL40 Govt', 'YLD_YTM_BID', 'PX_BID', '200')
-    print ''
-    print bloomberg.bdh()
-    print ''
-    print bloomberg.bdhOHLC()
+    print(bloomberg.bdp())
+    print('')
+    print(bloomberg.bdp('US900123AL40 Govt', 'YLD_YTM_BID', 'PX_BID', '200'))
+    print('')
+    print(bloomberg.bdh())
+    print('')
+    print(bloomberg.bdhOHLC())
     bloomberg.closeSession()
 
 
@@ -470,7 +470,7 @@ class ObserverStreamExample(Observer):
     def update(self, *args, **kwargs):
         output = kwargs['time'].strftime("%Y-%m-%d %H:%M:%S") + ' received ' + kwargs['security'] + ' ' + kwargs['field'] + '=' + str(kwargs['data'])
         output = output + '. CorrID '+str(kwargs['corrID']) + ' bbgTime ' + kwargs['bbgTime']
-        print output
+        print(output)
 
 
 def streamPatternExample():
@@ -484,14 +484,14 @@ def streamPatternExample():
 class ObserverRequestExample(Observer):
     def update(self, *args, **kwargs):
         if kwargs['field'] == 'ALL':
-            print kwargs['security']
-            print kwargs['data']
+            print(kwargs['security'])
+            print(kwargs['data'])
 
 
 def BLPTSExample():
     result = BLPTS(['XS0316524130 Corp', 'US900123CG37 Corp'], ['PX_BID', 'INT_ACC', 'DAYS_TO_NEXT_COUPON'])
     result.get()
-    print result.output
+    print(result.output)
     result.closeSession()
 
 

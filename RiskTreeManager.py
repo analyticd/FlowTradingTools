@@ -78,6 +78,7 @@ class RiskTreeManager():
         # self.displayPositions = self.displayPositions.join(bonds['REGS'])
         self.displayPositions = self.displayPositions.join(self.cntrymap['LongCountry'], on='Country')
         self.displayPositions['NewTrades'] = 0.0
+        self.displayPositions.index.name = 'BondName' # to avoid warning in the next line
         self.displayGroup = self.displayPositions.groupby(['Region','LongCountry','Issuer','Bond']).sum()
         #self.rateDisplayGroup = self.displayPositions.groupby(['CCY','Bond']).sum()
         #print self.rateDisplayGroup
@@ -95,6 +96,7 @@ class RiskTreeManager():
         pub.subscribe(self.updatePrice, "BOND_PRICE_UPDATE")
         pub.subscribe(self.switchBDMReady, "BDM_READY")
         pub.subscribe(self.onUpdateTree, "POSITION_UPDATE")
+        #pub.subscribe(self.updateBGNPrices, "BGN_PRICE_UPDATE")
         pass
 
     def switchBDMReady(self, message):
@@ -102,6 +104,9 @@ class RiskTreeManager():
         self.bdmReady = True
         self.treeRebuild()
         pass
+
+    # def updateBGNPrices(self):
+    #     self.treeRebuild()
 
     def updatePrice(self, message):
         if self.bdmReady:
@@ -187,6 +192,9 @@ class RiskTreeManager():
             try:
                 self.th.positionsByISINBook.at[i,'PriceT'] = self.bdm.df.at[row['Bond'], 'MID']
             except:
+                # try:
+                #     self.th.positionsByISINBook.at[i,'PriceT'] = self.bdm.df.at[row['Bond'], 'MID']
+                # except:
                 self.th.positionsByISINBook.at[i,'PriceT'] = pandas.np.nan # for UST and unrecognized bonds
         riskFreeIsins = []
         for issuer in self.riskFreeIssuers:

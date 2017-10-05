@@ -740,7 +740,7 @@ class IRRiskTree(DataFrameToTreeListCtrl):
         # data.fillna(0,inplace=True)
         # data.columns = data.columns.astype(str)
         # data.reset_index(inplace=True)
-        columnList = [u'Sum', u'(0, 0.5]', u'(0.5, 1.5]', u'(1.5, 2.5]', u'(2.5, 3.5]', u'(3.5, 4.5]', u'(4.5, 5.5]', u'(5.5, 6.5]', u'(6.5, 7.5]', u'(7.5, 8.5]', u'(8.5, 9.5]', u'(9.5, 11]', u'(11, 13.5]', u'(13.5, 17.5]', u'(17.5, 22.5]', u'(22.5, 27.5]', u'(27.5, 35]', u'(35, 1000]']
+        columnList = [u'Sum', u'(0, 0.5]', u'(0.5, 1.5]', u'(1.5, 2.5]', u'(2.5, 3.5]', u'(3.5, 4.5]', u'(4.5, 5.5]', u'(5.5, 6.5]', u'(6.5, 7.5]', u'(7.5, 8.5]', u'(8.5, 9.5]', u'(9.5, 11.0]', u'(11.0, 13.5]', u'(13.5, 17.5]', u'(17.5, 22.5]', u'(22.5, 27.5]', u'(27.5, 35.0]', u'(35.0, 1000.0]']
         # for c in columnList:
         #     if c not in data:
         #         data[c] = 0.0
