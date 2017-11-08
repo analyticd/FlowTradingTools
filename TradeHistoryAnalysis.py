@@ -45,6 +45,14 @@ ALLSALES = UKSALES + NYSALES + ASIASALES
 #        return 1
 
 
+def mx2frtdate(row):
+     return '20' + row['TRADE_DATE'][-2:]+'-'+row['TRADE_DATE'][3:5]+'-'+row['TRADE_DATE'][0:2] + ' ' + row['TRADE_TIME']
+
+def msx2frtbook(x):
+    # if x[0:7] == 'CTLNSBL':
+    #     return x[7:]
+    # if x[0:7] == 'CTSGSBL'
+    return x[7:]
 
 #Load counterparty mapping
 #xls=pandas.ExcelFile(DEFPATH+'CounterpartyMapping.xlsx')
@@ -207,7 +215,7 @@ class TradeHistory:
         self.LDNFLOWBOOKS=LDNFLOWBOOKS
         print 'Database rebuilt in: '+str(int(time.time()-time_start))+' seconds.'
 
-    def rebuild_historical_database(self):
+    def rebuild_historical_database_old_Front(self):
         """Function to rebuild historical database 
         """
         TradeHistoryFile='mc_all_trades_pre_2005_20140123_001.txt'
@@ -226,6 +234,44 @@ class TradeHistory:
         df=pandas.read_csv(YTDPATH+TradeHistoryFile,index_col=0,sep=';')
         TradeHistoryDataFrame=TradeHistoryDataFrame.append(df,ignore_index=False,verify_integrity=True)
         return TradeHistoryDataFrame
+
+    def rebuild_historical_database(self):
+        """Function to rebuild historical database 
+        """
+        TradeHistoryDataFrame=pandas.read_csv(THPATH+'FullFrontHistory.csv',index_col=0,sep=';')
+        
+        # here I download new file then pre-process it
+        TradeHistoryFile = 'MxGTS_FO_TradeHistory_'+getYday().strftime('%Y%m%d')+'.txt'
+        df=pandas.read_csv(STAGINGPATH+TradeHistoryFile,index_col=0,sep=';')
+        dic = {'INSID': 'insid',
+                'ISIN': 'isin',
+                'TRADE_PRICE': 'trade_price',
+                'QUANTITY': 'quantity',
+                'PORTFOLIO': 'portfolio',
+                'TRADE_CURR': 'trade_curr',
+                'STATUS': 'status',
+                'TRADER': 'Trader',
+                'COUNTERPARTY': 'Counterparty',
+                'SALES PERSON': 'Salesperson',
+                'SALES CREDIT': 'Sales Credit',
+                'SALES CREDIT MARKUP': 'Sales Credit MarkUp'}
+        df.rename(columns=dic, inplace=True)
+        df['trade_time'] = df.apply(mx2frtdate, axis=1)
+        df['DateDT'] = pandas.to_datetime(df['trade_time'],format='%Y-%m-%d %H:%M:%S')
+        df = df[df['DateDT']>=datetime.datetime(2017,11,6)].copy()
+        del df['TRADE_DATE']
+        del df['TRADE_TIME']
+        del df['DateDT']
+        df['portfolio'] = df['portfolio'].apply(msx2frtbook)
+        df['Sales Credit'] = df['Sales Credit']/abs(df['quantity'])
+        df['Sales Credit MarkUp'] = df['Sales Credit MarkUp']/abs(df['quantity'])
+
+
+
+        TradeHistoryDataFrame=TradeHistoryDataFrame.append(df,ignore_index=False,verify_integrity=True)
+        return TradeHistoryDataFrame
+
+
 
     def precleanup(self):
         """Function to pre cleanup the data. <--Still in use?

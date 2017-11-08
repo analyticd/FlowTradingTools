@@ -27,7 +27,7 @@ import time
 from win32api import GetUserName
 from enum import Enum
 
-from StaticDataImport import ccy, countries, bonds, TEMPPATH, bonduniverseexclusionsList, frontToEmail, BBGHand, regsToBondName, bbgToBdmDic, PHPATH, traderLogins#SPECIALBONDS, SINKABLEBONDS,
+from StaticDataImport import ccy, countries, bonds, TEMPPATH, frontToEmail, BBGHand, regsToBondName, bbgToBdmDic, PHPATH, traderLogins#SPECIALBONDS, SINKABLEBONDS, bonduniverseexclusionsList
 
 
 

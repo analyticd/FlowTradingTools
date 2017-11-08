@@ -271,15 +271,22 @@ class InforalgoControlPanel(ScrolledPanel):
         '''
         Pushing the Asia bbg prices back into the inforalgo table
         '''
-        bondList = []
-        for label in ['AsiaSov', 'AsiaHY', 'AsiaIG']:#
-            csv = pandas.read_csv(DEFPATH+label+'Tab.csv')
-            list(csv['Bonds'].dropna().values)
-            bondList.extend(list(csv['Bonds'].dropna().values))
+
+
+        # Iterative approach
+        # bondList = []
+        # for label in ['AsiaSov', 'AsiaHY', 'AsiaIG']:#
+        #     csv = pandas.read_csv(DEFPATH+label+'Tab.csv', index_col=0)
+        #     bondList.extend(list(csv.index.dropna().values))
+
+        # Functional approach
+        bondList = map(lambda z: pandas.read_csv(DEFPATH+z+'Tab.csv', index_col=0).index.dropna().values.tolist(), ['AsiaSov', 'AsiaHY', 'AsiaIG'])
+        bondList = filter(lambda b: b in self.bdm.df.index, reduce(lambda a, b: a + b, bondList))
+
 
         for bond in bondList:
-            if bond not in self.bdm.df.index:
-                continue
+            # if bond not in self.bdm.df.index:
+            #     continue
             bonddata = self.bdm.df.loc[bond]
             try:
                 self.uat_table.send_price(bonddata['ISIN'], bonddata['BID'], bonddata['ASK'], int(float(bonddata['BID_SIZE'])), int(float(bonddata['ASK_SIZE'])))

@@ -45,7 +45,7 @@ BASE_COLUMNS_BBG = [u'Time', u'Security', u'DlrSide', u'Qty (M)', u'Price (Dec)'
        u'App', u'UserName', u'Dlr Alias', u'Brkr', u'Seq#']
 
 IMPORT_DIC_BBG = dict(zip(BASE_COLUMNS_BBG,[object for i in BASE_COLUMNS_BBG]))
-IMPORT_DIC_BBG[u'Qty (M)'] = pandas.np.float64
+# IMPORT_DIC_BBG[u'Qty (M)'] = pandas.np.float64
 IMPORT_DIC_BBG[u'Price (Dec)'] = pandas.np.float64
 IMPORT_DIC_BBG[u'Price'] = pandas.np.float64
 #IMPORT_DIC_BBG[u'Cover'] = pandas.np.float64
@@ -87,6 +87,7 @@ class FullMarketAxessData():
         # we filter for error trades
         self.df = self.df[self.df['AbsUSDQty']<100000] # filtering for likely error trades
         #del self.df['Client'] - WE NEED THIS SO WE CAN LOOK FOR NAN
+        self.df['Venue'] = 'MA'
 
     def load_files_full(self):
         self.df = pandas.DataFrame(columns = BASE_COLUMNS)
@@ -264,6 +265,7 @@ class FullBBGALLQData():
         self.df = self.df.join(bonds[['TICKER','CNTRY_OF_RISK']],on='Bond')
         self.df.rename(columns={'TICKER':'Issuer','CNTRY_OF_RISK':'Country'},inplace=True)
         self.df = self.df.join(countries.set_index('Country code',verify_integrity=True)['Region'],on='Country')
+        self.df['Venue'] = 'BBG'
 
     def load_files_full(self):
         self.df = pandas.DataFrame(columns = BASE_COLUMNS_BBG)
@@ -275,7 +277,10 @@ class FullBBGALLQData():
             try:
                 single_date_str = single_date.strftime('%Y%m%d')
                 daily = pandas.read_csv(BBGPATH+'ICBCSFTP-'+single_date_str)
+                daily['Qty (M)'] = daily['Qty (M)'].replace('<1', 0)
+                daily['Qty (M)'] = daily['Qty (M)'].astype(float)
                 self.df = self.df.append(daily,ignore_index=True)
+
                 #last_date_str = single_date_str
             except IOError as e:
                 pass
@@ -293,9 +298,24 @@ class FullBBGALLQData():
                 single_date_str = single_date.strftime('%Y%m%d')
                 copy2(STAGINGPATH+'ICBCSFTP-'+single_date_str, BBGPATH)
                 daily = pandas.read_csv(BBGPATH+'ICBCSFTP-'+single_date_str)
+                daily['Qty (M)'] = daily['Qty (M)'].replace('<1', 0)
+                daily['Qty (M)'] = daily['Qty (M)'].astype(float)
                 self.df = self.df.append(daily,ignore_index=True)
+                self.df['Qty (M)'] = self.df['Qty (M)'].astype(float)
             except IOError as e:
                 pass
         self.df.to_csv(self.savepath, compression = 'bz2')
         pass
 
+    def RFQAggregator(mafull, bbgfull):
+        cols = ['DateDT', 'Bond', 'Counterparty', 'AbsQty', 'Status', 'Venue']
+        subma = mafull.df[cols].copy()
+        subma.loc[mafull.df['Bid/Offer'] == 'Offer', 'AbsQty'] *= -1
+        subma.rename(columns={'AbsQty': 'Quantity'}, inplace=True)
+        subma['DateDT'] = subma['DateDT'].apply(lambda x: x + datetime.timedelta(hours=5))
+        subbbg = bbgfull.df[cols].copy()
+        subbbg.loc[bbgfull.df['Bid/Offer'] == 'S', 'AbsQty'] *= -1
+        subbbg.rename(columns={'AbsQty': 'Quantity'}, inplace=True)
+        out = pandas.concat([subma, subbbg], ignore_index=True)
+        out = out.sort_values('DateDT')
+        return out

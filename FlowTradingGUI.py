@@ -48,6 +48,7 @@ import ma_analysis
 # import mpfiPricer
 from StaticDataImport import APPPATH, TEMPPATH, bonds, traderLogins
 from ChartingPanel import ChartingPanel
+import toms_parser
 
 pandas.set_option('display.max_columns', 500)
 pandas.set_option('display.max_rows', 500)
@@ -384,6 +385,8 @@ class MainForm(wx.Frame):
         self.accel_tbl = wx.AcceleratorTable([(wx.ACCEL_CTRL, ord('B'), xit_id),(wx.ACCEL_CTRL, ord('F'), yit_id)])
         self.SetAcceleratorTable(self.accel_tbl)
 
+        self.xmlLogger = toms_parser.RiskParser()
+
         try:
             self.buildTradeHistory(False)
         except:
@@ -519,7 +522,7 @@ class MainForm(wx.Frame):
         self.log.Clear()
         info = wx.AboutDialogInfo()
         info.Name = "Flow Trading Tools"
-        info.Version = "6.3-20170824"
+        info.Version = "6.5-20171006"
         info.Copyright = "(C) 2014-2017 Alexandre Almosni"
         info.Description = wordwrap("All data is indicative. Use at your own risk.",350, wx.ClientDC(self.panel))
         #info.WebSite = ("http://www.pythonlibrary.org", "My Home Page")
@@ -573,7 +576,7 @@ class MainForm(wx.Frame):
         #     self.notebook.SetSelection(0)
         #     print item + ' cannot be found.'
         item = self.textQuery(event, 'Bond or issuer name?')
-        self.tabRisk.onRiskTreeQuery(event, item)
+        self.tabRisk.onRiskTreeQuery(event, item.upper())
 
     def onBondQuerySub(self,bondname):
         """Function to query the current position for the bond. Function is called by onBondQuery and onQuickBondQuery
@@ -591,6 +594,8 @@ class MainForm(wx.Frame):
             print ''
         self.tabBondActivityMultiGrid.fillGrid(bondname)
         self.th.simpleQuery('Bond',bondname)
+        self.Restore()
+        self.Raise()
         pass
 
     def onClientQuery(self,event):
@@ -787,21 +792,23 @@ class MainForm(wx.Frame):
         """
         self.log.Clear()
         #Set default username
-        self.front_username=traderLogins[GetUserName()]
-        dlg = LoginDialog(self.front_username)
-        res = dlg.ShowModal()
-        editedUser=dlg.user.GetValue()
+        # self.front_username=traderLogins[GetUserName()]
+        # dlg = LoginDialog(self.front_username)
+        # res = dlg.ShowModal()
+        # editedUser=dlg.user.GetValue()
 
         #If user changed the value in the dialog, we grab the new value 
-        if traderLogins[GetUserName()] != editedUser:
-            self.front_username = editedUser
-        self.front_password=dlg.password.GetValue()
-        dlg.Destroy()
-        self.front_connection = FO_Toolkit.FrontConnection(self.front_username, self.front_password)
+        # if traderLogins[GetUserName()] != editedUser:
+        #     self.front_username = editedUser
+        # self.front_password=dlg.password.GetValue()
+        # dlg.Destroy()
+        self.front_username = 'ALMOSNA'
+        self.front_password = 'deprecated'
+        #self.front_connection = FO_Toolkit.FrontConnection(self.front_username, self.front_password)
         self.connectedToFront = True
         pass
 
-    def onTodayTradesSteps(self):
+    def onTodayTradesStepsOldFront(self):
         """Function to load today's trades  
         """
         pythoncom.CoInitialize()
@@ -815,6 +822,26 @@ class MainForm(wx.Frame):
         self.front_connection.new_trades_to_csv(self.todayDT.strftime('%Y-%m-%d'), savepath)
         newTrades = pandas.read_csv(TEMPPATH+savepath)
         self.thToday = TradeHistory(newTrades)
+        self.th.appendToday(self.thToday)
+        print 'See Trade Activity tab for new trades.'
+        pass
+
+
+    def onTodayTradesSteps(self):
+        """Function to load today's trades  
+        """
+        pythoncom.CoInitialize()
+        self.log.Clear()
+        # if not self.connectedToFront:
+        #     self.onLogInFront()
+        # savepath = 'newtrades.csv'
+        #argstring = self.front_username+' '+self.front_password+' '+self.todayDT.strftime('%Y-%m-%d') + ' ' + savepath
+        #opstr='python '+APPPATH+'FO_toolkit.pyc new_trades '+argstring
+        #subprocess.call(opstr)
+        #self.front_connection.new_trades_to_csv(self.todayDT.strftime('%Y-%m-%d'), savepath)
+        #newTrades = pandas.read_csv(TEMPPATH+savepath)
+        self.xmlLogger.refresh()
+        self.thToday = TradeHistory(self.xmlLogger.df)
         self.th.appendToday(self.thToday)
         print 'See Trade Activity tab for new trades.'
         pass

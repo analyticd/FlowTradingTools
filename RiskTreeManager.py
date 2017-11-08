@@ -102,6 +102,7 @@ class RiskTreeManager():
     def switchBDMReady(self, message):
         self.bdm = message.data
         self.bdmReady = True
+        self.onFillEODPrices()
         self.treeRebuild()
         pass
 
@@ -140,7 +141,7 @@ class RiskTreeManager():
             self.lock.release()
         pass
 
-    def onFillEODPrices(self, fc):
+    def onFillEODPrices(self):#, fc):
         """Function to download EOD Prices from Front and calculate PV.
         fc : front connection FO_Toolkit > FrontConnection class instance
         """
@@ -148,7 +149,11 @@ class RiskTreeManager():
         noEODPricesFile = not(os.path.exists(savepath)) or datetime.datetime.fromtimestamp(os.path.getmtime(savepath)).date()<datetime.datetime.today().date()
         if noEODPricesFile:
             for idx, row in self.th.positionsByISINBook.iterrows():
-                self.th.positionsByISINBook.loc[idx, 'PriceY'] = fc.historical_price_query(row['ISIN'], yesterdayDateSTR)
+                #self.th.positionsByISINBook.loc[idx, 'PriceY'] = fc.historical_price_query(row['ISIN'], yesterdayDateSTR)
+                try:
+                    self.th.positionsByISINBook.loc[idx, 'PriceY'] = self.bdm.df.at[row['Bond'], 'P1D']
+                except:
+                    self.th.positionsByISINBook.loc[idx, 'PriceY'] = pandas.np.nan
             self.th.positionsByISINBook.to_csv(TEMPPATH+'SOD_risk_prices.csv')
             for bond in self.displayPositions.index:
                 self.th.positions.loc[bond,'EODPrice'] = self.th.positionsByISINBook.loc[self.th.positionsByISINBook['Bond']==bond, 'PriceY'].iloc[0]

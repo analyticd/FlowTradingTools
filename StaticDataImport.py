@@ -23,6 +23,7 @@ MAPATH = APPPATH + 'ma_logs\\'
 BBGPATH = APPPATH + 'bbg_logs\\'
 PHPATH = APPPATH + 'PriceH~1\\'
 STAGINGPATH = 'Z:\\GlobalMarkets\\Credit Trading\\PROD\\Staging\\'
+XMLPATH = 'Z:\\GlobalMarkets\\Credit Trading\\PROD\\RealTime\\Staging\\'
 
 # User definitions
 gs = read_csv(DEFPATH+'genericSettings.csv')
@@ -31,13 +32,9 @@ LDNFLOWBOOKS = list(gs['LDNFLOWBOOKS'][gs['LDNFLOWBOOKS'].notnull()]) # excludes
 TRADERS = list(gs['TRADERS'][gs['TRADERS'].notnull()])
 frontToEmail = dict(zip(TRADERS,list(gs['EMAIL'][gs['EMAIL'].notnull()])))
 traderLogins = dict(zip(list(gs['WINLOGIN'][gs['WINLOGIN'].notnull()]),TRADERS))
-tabList = read_csv(DEFPATH+'TabListByTrader.csv')
-columnListByTrader = read_csv(DEFPATH+'ColumnListByTrader.csv')
 
 # Chart definitions
 xls = pandas.ExcelFile(DEFPATH+'chart_definitions.xls')
-#BONDCHARTS = xls.parse('groups')
-#BONDCHARTCOLORS = xls.parse('colors')
 BONDCHARTS = pandas.read_excel(xls,'groups')
 BONDCHARTCOLORS = pandas.read_excel(xls,'colors')
 
@@ -52,16 +49,17 @@ allisins.name = 'Bond'
 allisins = allisins.drop(allisins.index.get_duplicates())
 SPECIALBONDS = list(gs['SPECIALBONDS'][gs['SPECIALBONDS'].notnull()]) # just 'TNZNIA' atm
 SINKABLEBONDS = list(gs['SINKABLEBONDS'][gs['SINKABLEBONDS'].notnull()]) # will have different z-spread rule
-bonduniverseexclusionsdf = read_csv(DEFPATH+'bonduniverseexclusions.csv', header=None)
-bonduniverseexclusionsList = list(bonduniverseexclusionsdf[0])
+# bonduniverseexclusionsdf = read_csv(DEFPATH+'bonduniverseexclusions.csv', header=None)
+# bonduniverseexclusionsList = list(bonduniverseexclusionsdf[0])
 ratingsScale = read_csv(DEFPATH+'RatingsScale.csv',index_col=0)
 
 # Pricer
 bbgToBdmDic = read_csv(DEFPATH+'bbgToBdmDic.csv',index_col=0)['BondDataModel'].to_dict()
 bondRuns = read_csv(DEFPATH+'runs.csv',index_col=0)
-grid_labels = list(read_csv(DEFPATH+'TabList.csv',header=None)[0])
 colFormats = read_csv(DEFPATH+'colFormats.csv',index_col=0)
 runTitleStr = gs['runTitleStr'].iloc[0]
+tabList = read_csv(DEFPATH+'TabListByTrader.csv')
+columnListByTrader = read_csv(DEFPATH+'ColumnListByTrader.csv')
 
 # Trade history
 ccy = read_csv(DEFPATH+'CCY.csv',index_col=0)

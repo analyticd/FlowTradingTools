@@ -99,7 +99,7 @@ class GenericRiskTabPanel(wx.Panel):
         if not self.mainframe.connectedToFront:
             self.mainframe.onLogInFront(event)
             #fc = FO_Toolkit.FrontConnection(self.mainframe.front_username,self.mainframe.front_password)
-        if not self.riskTreeManager.EODPricesFilled:
+        if False:#not self.riskTreeManager.EODPricesFilled:
             #self.riskTreeManager.onFillEODPrices(fc)
             self.riskTreeManager.onFillEODPrices(self.mainframe.front_connection)
         self.lastUpdateTime.SetValue(x)
@@ -496,7 +496,7 @@ class BondActivityTabPanel(wx.Panel):
     def lastUpdateString(self,bondname=''):
         """Defines lastUpdateString variable
         """
-        output = 'Last 35 trades and MarketAxess enquiries (T-1)'
+        output = 'Last 70 trades and MarketAxess enquiries (T-1)'
         if bondname=='':
             return output
         else:
@@ -506,8 +506,8 @@ class BondActivityTabPanel(wx.Panel):
         """Draws the trade activity panel 
         """
         self.topSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.boxBondActivity = wx.StaticBox(self,label = 'Last 35 FRONT trades')
-        self.boxMAActivity = wx.StaticBox(self,label = 'Last 35 MarketAxess enquiries (T-1)')
+        self.boxBondActivity = wx.StaticBox(self,label = 'Last 70 FRONT trades, newest first')
+        self.boxMAActivity = wx.StaticBox(self,label = 'Last 70 MarketAxess enquiries (T-1), newest first')
         self.sizerBondActivity = wx.StaticBoxSizer(self.boxBondActivity,wx.HORIZONTAL)
         self.sizerMAActivity = wx.StaticBoxSizer(self.boxMAActivity,wx.HORIZONTAL)
         self.bondActivityGrid=BondTradesGrid(self,self.th)
@@ -524,8 +524,8 @@ class BondActivityTabPanel(wx.Panel):
         wx.CallAfter(self.bondActivityGrid.fillGrid,bondname)
         wx.CallAfter(self.marketAxessTradesGrid.fillGrid,bondname)
         #self.lastUpdateTime.SetValue(self.lastUpdateString(bondname))
-        self.boxBondActivity.SetLabel('Last 35 FRONT trades for ' + bondname)
-        self.boxMAActivity.SetLabel('Last 35 MarketAxess enquiries (T-1) for ' + bondname)
+        self.boxBondActivity.SetLabel('Last 70 FRONT trades for ' + bondname + ' (newest first)')
+        self.boxMAActivity.SetLabel('Last 70 MarketAxess enquiries (T-1) for ' + bondname + ' (newest first)')
 
 
 class GenericDisplayGrid(gridlib.Grid):
@@ -671,18 +671,18 @@ class RiskChangeGrid(GenericDisplayGrid):
 class BondTradesGrid(GenericDisplayGrid):
     def __init__(self,panel,th):
         self.th = th
-        colHeaders = ['Date','Quantity','Price','Counterparty','Sales','SC','MK']
-        colSizes = [60,75,60,100,75,40,40]
+        colHeaders = ['Date','Quantity','Price','Counterparty','Sales','SC','MK', '']
+        colSizes = [60,75,60,100,75,40,40,18]
         dAttr = wx.grid.GridCellAttr()
         rAttr = wx.grid.GridCellAttr()
         rAttr.SetAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE)
-        colAttrs = [rAttr,rAttr,rAttr,dAttr,dAttr,rAttr,rAttr]
-        GenericDisplayGrid.__init__(self,panel,35,7,colHeaders,colSizes,colAttrs,wx.SHOW_SB_NEVER,wx.SHOW_SB_NEVER)
+        colAttrs = [rAttr,rAttr,rAttr,dAttr,dAttr,rAttr,rAttr, dAttr]
+        GenericDisplayGrid.__init__(self,panel,70,8,colHeaders,colSizes,colAttrs,wx.SHOW_SB_NEVER,wx.SHOW_SB_DEFAULT)
         pass
 
     def fillGrid(self,bond):
         self.ClearGrid()
-        subdfview = self.th.df.loc[self.th.df['Bond']==bond,['Date','Qty','Price','Counterparty','Sales','SCu','MKu']].tail(35).copy()
+        subdfview = self.th.df.loc[self.th.df['Bond']==bond,['Date','Qty','Price','Counterparty','Sales','SCu','MKu']].tail(70).sort_index(ascending=False)
         rowindex = 0
         for (i,row) in subdfview.iterrows():
             if rowindex % 2:
@@ -695,22 +695,23 @@ class BondTradesGrid(GenericDisplayGrid):
             self.SetCellValue(rowindex,5,'{:.1f}'.format(row.iat[5]))
             self.SetCellValue(rowindex,6,'{:.1f}'.format(row.iat[6]))
             rowindex = rowindex + 1
+        #self.MakeCellVisible(rowindex - 1, 1)
 
 
 class MarketAxessTradesGrid(GenericDisplayGrid):
     def __init__(self, panel, ma):
         self.ma = ma
-        colHeaders = ['Date','Counterparty','Side','Quantity','Status']
-        colSizes = [60,100,60,75,100]
+        colHeaders = ['Date','Counterparty','Side','Quantity','Status', '']
+        colSizes = [60,100,60,75,100, 18]
         dAttr = wx.grid.GridCellAttr()
         rAttr = wx.grid.GridCellAttr()
         rAttr.SetAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE)
-        colAttrs = [rAttr,dAttr,dAttr,rAttr,dAttr]
-        GenericDisplayGrid.__init__(self,panel,35,5,colHeaders,colSizes,colAttrs,wx.SHOW_SB_NEVER,wx.SHOW_SB_NEVER)
+        colAttrs = [rAttr,dAttr,dAttr,rAttr,dAttr, dAttr]
+        GenericDisplayGrid.__init__(self,panel,70,6,colHeaders,colSizes,colAttrs,wx.SHOW_SB_NEVER,wx.SHOW_SB_DEFAULT)
 
     def fillGrid(self,bond):
         self.ClearGrid()
-        subdfview = self.ma.df.loc[self.ma.df['Bond']==bond,['Date','Counterparty','Bid/Offer','AbsQty','Status']].tail(35).copy()
+        subdfview = self.ma.df.loc[self.ma.df['Bond']==bond,['Date','Counterparty','Bid/Offer','AbsQty','Status']].tail(70).tail(70).sort_index(ascending=False)
         rowindex = 0
         for (i,row) in subdfview.iterrows():
             if rowindex % 2:
@@ -721,3 +722,4 @@ class MarketAxessTradesGrid(GenericDisplayGrid):
             self.SetCellValue(rowindex,3,'{:,.0f}'.format(row.iat[3]*1000))
             self.SetCellValue(rowindex,4,str(row.iat[4]))
             rowindex = rowindex + 1
+        #self.MakeCellVisible(rowindex - 1, 1)

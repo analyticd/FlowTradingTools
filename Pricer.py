@@ -39,7 +39,7 @@ from subprocess import Popen
 from win32api import GetUserName
 
 
-from StaticDataImport import bonds, DEFPATH, APPPATH, bondRuns, frontToEmail, SPECIALBONDS, colFormats, runTitleStr, regsToBondName, tabList, columnListByTrader
+from StaticDataImport import bonds, DEFPATH, APPPATH, bondRuns, frontToEmail, SPECIALBONDS, colFormats, runTitleStr, regsToBondName, tabList, columnListByTrader, traderLogins
 from BondDataModel import BondDataModel
 from guiWidgets import GenericDisplayGrid
 
@@ -210,7 +210,7 @@ class RunsGrid(gridlib.Grid):
 
         """
         gridlib.Grid.__init__(self, panel)
-        self.CreateGrid(60,100) 
+        self.CreateGrid(60,200) 
         self.defaultFont = self.GetDefaultCellFont()
         self.fontBold = self.GetDefaultCellFont()
         self.fontBold.SetWeight(wx.FONTWEIGHT_BOLD)
@@ -396,7 +396,7 @@ class RunsGrid(gridlib.Grid):
             strRunOutput = strRunOutput + '#autoforward' + '\n\n\n'
         strRunOutput = strRunOutput + '#icbcsrun' + '\n\n\n'
         send_mail_via_com(strRunOutput, runTitleStr + ' - ' + bondCol['Header'],
-                          frontToEmail[self.bdm.mainframe.front_username])
+                          frontToEmail[traderLogins[GetUserName()]])
 
 
 
@@ -550,6 +550,10 @@ class PricingGrid(gridlib.Grid):
         self.copyLineID = wx.NewId()
         self.copyISINID = wx.NewId()
         self.pastePricesID = wx.NewId()
+        self.bidToBbgID = wx.NewId()
+        self.askToBbgID = wx.NewId()
+        self.midToBbgID = wx.NewId()
+        self.skewToBbgID = wx.NewId()
         self.Bind(wx.EVT_MENU, self.showALLQ, id=self.showAllqID)
         self.Bind(wx.EVT_MENU, self.showTradeHistory, id=self.showTradeHistoryID)
         self.Bind(wx.EVT_MENU, self.showDES, id=self.showDESID)
@@ -562,6 +566,10 @@ class PricingGrid(gridlib.Grid):
         self.Bind(wx.EVT_MENU, self.copyLine, id=self.copyLineID)
         self.Bind(wx.EVT_MENU, self.copyISIN, id=self.copyISINID)
         self.Bind(wx.EVT_MENU, self.onPastePrices, id=self.pastePricesID)
+        self.Bind(wx.EVT_MENU, self.bidToBbg, id=self.bidToBbgID)
+        self.Bind(wx.EVT_MENU, self.askToBbg, id=self.askToBbgID)
+        self.Bind(wx.EVT_MENU, self.midToBbg, id=self.midToBbgID)
+        self.Bind(wx.EVT_MENU, self.skewToBbg, id=self.skewToBbgID)
         self.selected_row_number = 0
         self.selected_col_number = 0
         self.previousSingleSelection = True
@@ -920,6 +928,15 @@ class PricingGrid(gridlib.Grid):
         sell144AItem = wx.MenuItem(menu, self.sell144AID, "Sell 144A")
         menu.AppendItem(sell144AItem)
         menu.AppendSeparator()
+        midToBbgItem = wx.MenuItem(menu, self.midToBbgID, "Mid to BBG")
+        menu.AppendItem(midToBbgItem)
+        bidToBbgItem = wx.MenuItem(menu, self.bidToBbgID, "Bid to BBG")
+        menu.AppendItem(bidToBbgItem)
+        askToBbgItem = wx.MenuItem(menu, self.askToBbgID, "Ask to BBG")
+        menu.AppendItem(askToBbgItem)
+        skewToBbgItem = wx.MenuItem(menu, self.skewToBbgID, "Skew to BBG")
+        menu.AppendItem(skewToBbgItem)
+        menu.AppendSeparator()
         copyLineItem = wx.MenuItem(menu, self.copyLineID, "Copy line")
         menu.AppendItem(copyLineItem)
         copyISINItem = wx.MenuItem(menu, self.copyISINID, "Copy ISIN")
@@ -973,6 +990,44 @@ class PricingGrid(gridlib.Grid):
 
     def sell144A(self, event):
         self.bbgScreenSendKeys(bonds.loc[regsToBondName[self.clickedISIN],'144A'], 'S')
+
+    def bidToBbg(self, event):
+        self.priceToBbg(event, 'BID')
+
+    def midToBbg(self, event):
+        self.priceToBbg(event, 'MID')
+
+    def askToBbg(self, event):
+        self.priceToBbg(event, 'ASK')
+
+    def skewToBbg(self, event):
+        self.priceToBbg(event, 'SKEW')
+
+
+    def priceToBbg(self, event, bidaskmid):
+        rowstart = self.GetGridCursorRow()
+        n = 1 if (self.selected_row_number <= 1 or self.singleSelection) else self.selected_row_number
+        for row in range(rowstart, rowstart + n):
+            bond = self.GetCellValue(row, self.bondCol)
+            if bond == "":
+                continue
+            bidoffer = self.bdm.df.at[bond,'ASK'] - self.bdm.df.at[bond,'BID']
+            newValue = round(16 * self.bdm.df.at[bond, 'BGN_MID']) / 16 #solves issues with 1/16th increments
+            if bidaskmid == 'BID':
+                pass
+            if bidaskmid == 'ASK':
+                newValue = newValue - bidoffer
+            if bidaskmid == 'MID':
+                newValue = newValue - 0.5 * bidoffer
+            if bidaskmid == 'SKEW':
+                pos = self.bdm.df.at[bond, 'POSITION']
+                if (abs(pos) <= 500000):
+                    newValue = newValue - 0.5 * bidoffer
+                if pos > 500000:
+                    newValue = newValue - bidoffer
+            self.SetCellValue(row,self.bidCol,'{:,.3f}'.format(newValue))
+            self.SetCellValue(row,self.askCol,'{:,.3f}'.format(newValue + bidoffer))
+            self.sendUpdateToInforalgo(row)
 
     def bbgScreenSendKeys(self, isin, strCommand):
         """Sends command to Bloomberg.
@@ -1035,10 +1090,10 @@ class PricingGrid(gridlib.Grid):
                     self.SetCellBackgroundColour(i, j, wx.RED)
                     self.SetCellValue(i, j, value)
                     if i % 2:
-                        wx.CallLater(1000, self.SetCellBackgroundColour, i, j, self.oddLineColour)
+                        wx.CallLater(500, self.SetCellBackgroundColour, i, j, self.oddLineColour)
                     else:
-                        wx.CallLater(1000, self.SetCellBackgroundColour, i, j, wx.WHITE)
-                    wx.CallLater(1100, self.ForceRefresh)
+                        wx.CallLater(500, self.SetCellBackgroundColour, i, j, wx.WHITE)
+                    wx.CallLater(600, self.ForceRefresh)
 
     def updateLine(self, message=None):
         """Holding function that listens to the BOND_PRICE_UPDATE event and calls updateLineAction() after 
@@ -1166,7 +1221,7 @@ class PricerWindow(wx.Frame):
         self.statusbar.SetStatusWidths([-1, -1, -1, -3])
         self.statusbar.SetStatusText('Last Front update: ' + self.lastUpdateString(),0)
         self.statusbar.SetStatusText('Last rates update: ' + datetime.datetime.now().strftime('%H:%M'),1)
-        self.statusbar.SetStatusText('Last Bloomberg update: ' + datetime.datetime.now().strftime('%H:%M'),2)
+        self.statusbar.SetStatusText('Waiting for CBBT update',2)
         self.statusbar.SetStatusText('Sum:',3)
 
         self.Bind(wx.EVT_CLOSE, self.onClose)
@@ -1357,7 +1412,7 @@ class PricerWindow(wx.Frame):
         self.statusbar.SetStatusText('Refreshing swap rates...',2)
         self.bdm.refreshSwapRates()
         #self.ratesUpdateTime.SetValue(self.lastSwapRefreshTime())
-        self.statusbar.SetStatusText('Last rates update: ' + datetime.datetime.now().strftime('%H:%M'),2)
+        self.statusbar.SetStatusText('Last rates update: ' + datetime.datetime.now().strftime('%H:%M'),1)
         #busyDlg = None
         pass
 
