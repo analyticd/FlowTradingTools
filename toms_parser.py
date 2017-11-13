@@ -5,12 +5,10 @@ import os
 import pandas
 hdr = '{http://www.fpml.org/2008/FpML-4-5}'
 hdr2 = '{http://www.standardbank.com/messagebus/core/FpML-4-5/extension}'
-# 2017-01-03 08:08:55
 
 
 class TOMSTicket():
 	def __init__(self, file='Alex_Bond_Example.xml'):
-		#trdnbr;insid;isin;trade_price;quantity;trade_time;portfolio;trade_curr;status;Trader;Counterparty;Salesperson;Sales Credit;Sales Credit MarkUp
 		self.root = ElementTree.parse(XMLPATH+file).getroot()
 		self.tradeBundle = self.root.find('tradeBundles').find('tradeBundle')
 		self.reference = self.tradeBundle.find('reference').text
@@ -59,26 +57,28 @@ class TOMSTicket():
 				self.quantity = self.notional
 			else:
 				self.quantity = - self.notional
+		#trdnbr;insid;isin;trade_price;quantity;trade_time;portfolio;trade_curr;status;Trader;Counterparty;Salesperson;Sales Credit;Sales Credit MarkUp
+		self.front_array = [self.reference, 'insid', self.isin, self.price, self.quantity, self.frtdate, self.book, self.ccy, 'dummystatus', 'TR', self.counterparty, 'SP', 0, 0]
 
 
-	def front_array(self):
-		# fra = []
-		# fra.append(self.reference)
-		# fra.append('insid')
-		# fra.append(self.isin)
-		# fra.append(self.price)
-		# fra.append(self.quantity)
-		# fra.append(self.frtdate)
-		# fra.append(self.book)
-		# fra.append(self.ccy)
-		# fra.append('dummystatus')
-		# fra.append('TR')
-		# fra.append(self.counterparty)
-		# fra.append('SP')
-		# fra.append(0)
-		# fra.append(0)
-		return [self.reference, 'insid', self.isin, self.price, self.quantity, self.frtdate, self.book, self.ccy, 'dummystatus', 'TR', self.counterparty, 'SP', 0, 0]
-		#return fra
+	# def front_array(self):
+	# 	# fra = []
+	# 	# fra.append(self.reference)
+	# 	# fra.append('insid')
+	# 	# fra.append(self.isin)
+	# 	# fra.append(self.price)
+	# 	# fra.append(self.quantity)
+	# 	# fra.append(self.frtdate)
+	# 	# fra.append(self.book)
+	# 	# fra.append(self.ccy)
+	# 	# fra.append('dummystatus')
+	# 	# fra.append('TR')
+	# 	# fra.append(self.counterparty)
+	# 	# fra.append('SP')
+	# 	# fra.append(0)
+	# 	# fra.append(0)
+	# 	return [self.reference, 'insid', self.isin, self.price, self.quantity, self.frtdate, self.book, self.ccy, 'dummystatus', 'TR', self.counterparty, 'SP', 0, 0]
+	# 	#return fra
 
 
 
@@ -125,21 +125,25 @@ class RiskParser():
 			if (not(x.reference) in intrefs) and (x.action != 'CANCEL') and (x.frtdate[0:10]==self.today.strftime('%Y-%m-%d')):
 				newxmls.append(x)
 		self.xmls = newxmls
-		self.to_df()
+		d = [x.front_array for x in self.xmls]
+		self.df = pandas.DataFrame(columns=['trdnbr', 'insid', 'isin', 'trade_price', 'quantity', 'trade_time', 'portfolio', 'trade_curr', 'status', 'Trader', 'Counterparty', 'Salesperson', 'Sales Credit', 'Sales Credit MarkUp'], data=d)
+		self.df = self.df.set_index('trdnbr') #DO WE NEED THIS
+
+		#self.to_df()
 
 
 	def print_trade_list(self):
 		for x in self.xmls:
-			print x.front_array()
+			print x.front_array
 
-	def to_df(self):
-		#trdnbr;insid;isin;trade_price;quantity;trade_time;portfolio;trade_curr;status;Trader;Counterparty;Salesperson;Sales Credit;Sales Credit MarkUp
-		# d = []
-		# for x in self.xmls:
-		# 	d.append(x.front_array())
-		d = [x.front_array() for x in self.xmls]
-		self.df = pandas.DataFrame(columns=['trdnbr', 'insid', 'isin', 'trade_price', 'quantity', 'trade_time', 'portfolio', 'trade_curr', 'status', 'Trader', 'Counterparty', 'Salesperson', 'Sales Credit', 'Sales Credit MarkUp'], data=d)
-		self.df = self.df.set_index('trdnbr') #DO WE NEED THIS
+	# def to_df(self):
+	# 	#trdnbr;insid;isin;trade_price;quantity;trade_time;portfolio;trade_curr;status;Trader;Counterparty;Salesperson;Sales Credit;Sales Credit MarkUp
+	# 	# d = []
+	# 	# for x in self.xmls:
+	# 	# 	d.append(x.front_array())
+	# 	d = [x.front_array for x in self.xmls]
+	# 	self.df = pandas.DataFrame(columns=['trdnbr', 'insid', 'isin', 'trade_price', 'quantity', 'trade_time', 'portfolio', 'trade_curr', 'status', 'Trader', 'Counterparty', 'Salesperson', 'Sales Credit', 'Sales Credit MarkUp'], data=d)
+	# 	self.df = self.df.set_index('trdnbr') #DO WE NEED THIS
 
 
 

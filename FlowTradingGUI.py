@@ -107,8 +107,19 @@ def EVT_RESULT(win, func):
 #         wx.PostEvent(self.wxObject, ResultEvent('Ready'))
 #         pub.sendMessage('MARKET_AXESS_READY', message=MessageContainer('empty'))
 
+##############
+class TodayTradesThread(wx.Timer):
+    def __init__(self, wxObject, secs):
+        wx.Timer.__init__(self)
+        self.wxObject = wxObject
+        self.Bind(wx.EVT_TIMER, self.refresh)
+        self.Start(1000 * secs, oneShot=False)
+
+    def refresh(self, event):
+        self.wxObject.onTodayTradesSteps()
+        pub.sendMessage('POSITION_UPDATE', message=MessageContainer(self.wxObject.th.positions))
 ##################################################################
-class TodayTradesThread(Thread):
+class TodayTradesThreadOld(Thread):
     """Test Worker Thread Class."""
     def __init__(self, wxObject):
         """Init Worker Thread Class."""
@@ -830,7 +841,7 @@ class MainForm(wx.Frame):
     def onTodayTradesSteps(self):
         """Function to load today's trades  
         """
-        pythoncom.CoInitialize()
+        #pythoncom.CoInitialize()
         self.log.Clear()
         # if not self.connectedToFront:
         #     self.onLogInFront()
@@ -846,7 +857,11 @@ class MainForm(wx.Frame):
         print 'See Trade Activity tab for new trades.'
         pass
 
-    def onTodayTrades(self,event):
+    def onTodayTrades(self, event):
+        TodayTradesThread(self, 300)
+        pass
+
+    def onTodayTradesPreMurex(self,event):
         TodayTradesThread(self)
         pass
 

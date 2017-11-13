@@ -49,12 +49,12 @@ class GenericRiskTabPanel(wx.Panel):
         self.topSizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer1 = wx.BoxSizer(wx.HORIZONTAL)
         self.sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        self.btn = wx.Button(self, label="Refresh Front data")
-        self.btn.Bind(wx.EVT_BUTTON, self.onRefreshFrontData)
-        btn3 = wx.Button(self, label = "Print risk tree")
-        btn3.Bind(wx.EVT_BUTTON, self.onPrintRiskTree) 
-        self.sizer1.Add(self.btn, 1, wx.ALL, 2)
-        self.sizer1.Add(btn3, 0.5, wx.ALL, 2)
+        # self.btn = wx.Button(self, label="Refresh Front data")
+        # self.btn.Bind(wx.EVT_BUTTON, self.onRefreshFrontData)
+        # btn3 = wx.Button(self, label = "Print risk tree")
+        # btn3.Bind(wx.EVT_BUTTON, self.onPrintRiskTree) 
+        #self.sizer1.Add(self.btn, 1, wx.ALL, 2)
+        #self.sizer1.Add(btn3, 0.5, wx.ALL, 2)
         self.lastUpdateTime = wx.TextCtrl(self,-1,self.lastUpdateString())
         self.sizer2.Add(self.lastUpdateTime,1,wx.ALL,2)
         self.riskTree = self.designClass(self,self.riskTreeManager)
@@ -87,7 +87,7 @@ class GenericRiskTabPanel(wx.Panel):
         #self.parentnotebook.SetSelection(1)
         if message.data == self.txtID:
             self.lastUpdateTime.SetValue(self.lastUpdateString())
-            self.btn.Enable()
+            #self.btn.Enable()
         pass
 
     def onFillEODPrices(self,event):

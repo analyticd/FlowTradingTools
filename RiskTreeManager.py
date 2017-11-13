@@ -173,7 +173,7 @@ class RiskTreeManager():
         self.EODPricesFilled = True
 
     def onUpdateTree(self, message=None):#EVENT LISTENER
-        self.treeRebuild()
+        wx.CallAfter(self.treeRebuild)
 
     def treeRebuild(self):
         self.traded_bonds = self.th.df[self.th.df['Date']==todayDateSTR]['Bond'].drop_duplicates().dropna().copy()

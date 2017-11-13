@@ -89,9 +89,9 @@ def getMaturityDate(d):
     Function to parse maturity date in YYYY-MM-DD format
     """
     try:
-        output=datetime.datetime.strptime(d,'%Y-%m-%d')
+        output = datetime.datetime.strptime(d,'%Y-%m-%d')
     except:
-        output=datetime.datetime(2049,12,31)
+        output = datetime.datetime(2049,12,31)
     return output
 
 def getMaturityDateOld(d):
@@ -99,9 +99,9 @@ def getMaturityDateOld(d):
     Function to parse maturity date in MM/DD/YYYY format
     """
     try:
-        output=datetime.datetime.strptime(d,'%m/%d/%Y')
+        output = datetime.datetime.strptime(d,'%m/%d/%Y')
     except:
-        output=datetime.datetime(2049,12,31)
+        output = datetime.datetime(2049,12,31)
     return output
 
 def filterLondonBooks(book):
@@ -114,7 +114,11 @@ def getYday():
     """
     Get yesterday's date in datetime.datetime format
     """
-    return datetime.datetime.today()-datetime.timedelta(days=1)
+    x = datetime.datetime.today()
+    if x.weekday() == 0:
+        return x - datetime.timedelta(days=3)
+    else:
+        return x - datetime.timedelta(days=1)
 
 def is_int(s):
     """

@@ -1021,9 +1021,9 @@ class PricingGrid(gridlib.Grid):
                 newValue = newValue - 0.5 * bidoffer
             if bidaskmid == 'SKEW':
                 pos = self.bdm.df.at[bond, 'POSITION']
-                if (abs(pos) <= 500000):
+                if (abs(pos) <= 200000):
                     newValue = newValue - 0.5 * bidoffer
-                if pos > 500000:
+                if pos > 200000:
                     newValue = newValue - bidoffer
             self.SetCellValue(row,self.bidCol,'{:,.3f}'.format(newValue))
             self.SetCellValue(row,self.askCol,'{:,.3f}'.format(newValue + bidoffer))
@@ -1219,7 +1219,7 @@ class PricerWindow(wx.Frame):
         self.statusbar = self.CreateStatusBar()
         self.statusbar.SetFieldsCount(4) 
         self.statusbar.SetStatusWidths([-1, -1, -1, -3])
-        self.statusbar.SetStatusText('Last Front update: ' + self.lastUpdateString(),0)
+        self.statusbar.SetStatusText('Last Murex update: ' + self.lastUpdateString(),0)
         self.statusbar.SetStatusText('Last rates update: ' + datetime.datetime.now().strftime('%H:%M'),1)
         self.statusbar.SetStatusText('Waiting for CBBT update',2)
         self.statusbar.SetStatusText('Sum:',3)
@@ -1287,7 +1287,7 @@ class PricerWindow(wx.Frame):
         sizer.Add(buttonsPanel, 0.25, wx.EXPAND, 10)
         buttonPanelSizer = wx.GridSizer(1,7,0,0)
         #Create buttons
-        self.frontButton = wx.Button(buttonsPanel, label='Refresh trades')
+        self.frontButton = wx.Button(buttonsPanel, label='Start live risk')
         self.frontButton.Bind(wx.EVT_BUTTON, self.onRefreshFrontData)
         #self.lastUpdateTime = wx.TextCtrl(buttonsPanel, -1, self.lastUpdateString())
         ratesButton = wx.Button(buttonsPanel, label='Refresh rates')
@@ -1393,6 +1393,7 @@ class PricerWindow(wx.Frame):
         Refreshes front data
         '''
         self.frontButton.Disable()
+        self.frontButton.SetLabel('Risk is live')
         #self.lastUpdateTime.SetValue('Requested data update, please wait...')
         self.statusbar.SetStatusText('Pulling trade data...',0)
         self.mainframe.onTodayTrades(event)
@@ -1401,8 +1402,8 @@ class PricerWindow(wx.Frame):
         """Sets the value of lastUpdateTime to self.lastUpdateString()
         """
         #self.lastUpdateTime.SetValue(self.lastUpdateString())
-        self.statusbar.SetStatusText('Last Front update: ' + datetime.datetime.now().strftime('%H:%M'),0)
-        self.frontButton.Enable()
+        self.statusbar.SetStatusText('Last Murex update: ' + datetime.datetime.now().strftime('%H:%M'),0)
+        # self.frontButton.Enable()
 
     def onRefreshSwapRates(self, event):
         '''
