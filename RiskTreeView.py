@@ -52,231 +52,231 @@ import TradeHistoryAnalysis
 
 #----------------------------------------------------------------------
 
-class RiskTreeOld(wx.Panel):
-    """Class to define the Risk Tree Panel 
+# class RiskTreeOld(wx.Panel):
+#     """Class to define the Risk Tree Panel 
 
-    Attributes:
-    self.treeBondDc : Dictionary to contain childBond (wx.TreeListCtrl object)
-    self.treeCountryDc : Dictionary to contain childCountry (wx.TreeListCtrl object)
-    self.treeRegionDc : Dictionary to contain childRegion (wx.TreeListCtrl object)
-    self.treeIssuerDc : Dictionary to contain childIssuer (wx.TreeListCtrl object)
+#     Attributes:
+#     self.treeBondDc : Dictionary to contain childBond (wx.TreeListCtrl object)
+#     self.treeCountryDc : Dictionary to contain childCountry (wx.TreeListCtrl object)
+#     self.treeRegionDc : Dictionary to contain childRegion (wx.TreeListCtrl object)
+#     self.treeIssuerDc : Dictionary to contain childIssuer (wx.TreeListCtrl object)
 
-    Methods:
-    __init__()
-    OnActivate()
-    onCollapseAll()
-    onRiskTreeQuery()
-    OnRightUp()
-    onSize()
-    onFillEODPrices()
-    onUpdateTree()
-    takeScreenshot()
+#     Methods:
+#     __init__()
+#     OnActivate()
+#     onCollapseAll()
+#     onRiskTreeQuery()
+#     OnRightUp()
+#     onSize()
+#     onFillEODPrices()
+#     onUpdateTree()
+#     takeScreenshot()
 
-    """
-    def __init__(self, parent, riskTreeManager):
-        """Keyword arguments:
-        parent : parent 
-        th = trade history (defaults to empty array if not specified)
-        """
-        wx.Panel.__init__(self, parent, wx.ID_ANY)#-1
-        self.Bind(wx.EVT_SIZE, self.onSize)
-        self.riskTreeManager = riskTreeManager
-        self.parent=parent
+#     """
+#     def __init__(self, parent, riskTreeManager):
+#         """Keyword arguments:
+#         parent : parent 
+#         th = trade history (defaults to empty array if not specified)
+#         """
+#         wx.Panel.__init__(self, parent, wx.ID_ANY)#-1
+#         self.Bind(wx.EVT_SIZE, self.onSize)
+#         self.riskTreeManager = riskTreeManager
+#         self.parent=parent
 
-        self.tree = gizmos.TreeListCtrl(self, wx.ID_ANY)
+#         self.tree = gizmos.TreeListCtrl(self, wx.ID_ANY)
 
-        isz = (16,16)
-        il = wx.ImageList(isz[0], isz[1])
-        self.fldridx     = il.Add(wx.ArtProvider_GetBitmap(wx.ART_FOLDER,      wx.ART_OTHER, isz))
-        self.fldropenidx = il.Add(wx.ArtProvider_GetBitmap(wx.ART_FILE_OPEN,   wx.ART_OTHER, isz))
-        self.fileidx     = il.Add(wx.ArtProvider_GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, isz))
-        #smileidx    = il.Add(images.Smiles.GetBitmap())
+#         isz = (16,16)
+#         il = wx.ImageList(isz[0], isz[1])
+#         self.fldridx     = il.Add(wx.ArtProvider_GetBitmap(wx.ART_FOLDER,      wx.ART_OTHER, isz))
+#         self.fldropenidx = il.Add(wx.ArtProvider_GetBitmap(wx.ART_FILE_OPEN,   wx.ART_OTHER, isz))
+#         self.fileidx     = il.Add(wx.ArtProvider_GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, isz))
+#         #smileidx    = il.Add(images.Smiles.GetBitmap())
 
-        self.il = il
-        self.tree.SetImageList(il)
+#         self.il = il
+#         self.tree.SetImageList(il)
 
-        # create some columns
-        self.tree.AddColumn("Region")#0
-        self.tree.AddColumn("Position")#1
-        self.tree.AddColumn("USD position")#2
-        self.tree.AddColumn("USD PV")#3
-        self.tree.AddColumn("SPV01")#4
-        self.tree.AddColumn("New trades")#5
-        self.tree.AddColumn("Y close")#6
-        for i in range(1,7):
-            self.tree.SetColumnAlignment(i,wx.ALIGN_RIGHT)
-        self.tree.SetMainColumn(0) # self.the one wiself.th self.the tree in it...
-        self.tree.SetColumnWidth(0, 175)
-        for i in [1,3,4,5,6]:
-            self.tree.SetColumnWidth(i,100)
-        self.tree.SetColumnWidth(2,0)
-
-
-        self.root = self.tree.AddRoot("Total")
-
-        self.treeBondDc = {}
-        self.treeCountryDc = {}
-        self.treeRegionDc = {}
-        self.treeIssuerDc = {}
-
-        self.onUpdateTree(MessageContainer('empty'))
-
-        self.tree.Expand(self.root)
-
-        self.tree.GetMainWindow().Bind(wx.EVT_RIGHT_UP, self.OnRightUp)
-        self.tree.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.OnActivate)
-        pub.subscribe(self.onUpdateTree, "REDRAW_RISK_TREE")
+#         # create some columns
+#         self.tree.AddColumn("Region")#0
+#         self.tree.AddColumn("Position")#1
+#         self.tree.AddColumn("USD position")#2
+#         self.tree.AddColumn("USD PV")#3
+#         self.tree.AddColumn("SPV01")#4
+#         self.tree.AddColumn("New trades")#5
+#         self.tree.AddColumn("Y close")#6
+#         for i in range(1,7):
+#             self.tree.SetColumnAlignment(i,wx.ALIGN_RIGHT)
+#         self.tree.SetMainColumn(0) # self.the one wiself.th self.the tree in it...
+#         self.tree.SetColumnWidth(0, 175)
+#         for i in [1,3,4,5,6]:
+#             self.tree.SetColumnWidth(i,100)
+#         self.tree.SetColumnWidth(2,0)
 
 
-    def OnActivate(self, evt):
-        """Function to expand tree branch when selected 
-        """
-        if evt.GetItem() in self.treeBondDc.values():
-            self.parent.mainframe.onBondQuerySub(self.tree.GetItemText(evt.GetItem()))
-        elif evt.GetItem() in self.treeIssuerDc.values():
-            self.parent.mainframe.log.Clear()
-            self.parent.mainframe.notebook.SetSelection(0)
-            self.parent.mainframe.th.simpleQuery('Issuer',self.tree.GetItemText(evt.GetItem()))
-        elif evt.GetItem() in self.treeCountryDc.values():
-            self.parent.mainframe.log.Clear()
-            self.parent.mainframe.notebook.SetSelection(0)
-            country_code=countries[countries['Long name']==self.tree.GetItemText(evt.GetItem())]['Country code'].iloc[0]
-            self.parent.mainframe.th.simpleQuery('Country',country_code)
-        elif evt.GetItem() in self.treeRegionDc.values():
-            self.parent.mainframe.log.Clear()
-            self.parent.mainframe.notebook.SetSelection(0)
-            self.parent.mainframe.th.simpleQuery('Region',self.tree.GetItemText(evt.GetItem()))
-        else:
-            pass
+#         self.root = self.tree.AddRoot("Total")
 
-    def onCollapseAll(self):
-        """Function to collapse tree branch when selected 
-        """
-        for issuer in self.treeIssuerDc:
-            self.tree.Collapse(self.treeIssuerDc[issuer])
-        for country in self.treeCountryDc:
-            self.tree.Collapse(self.treeCountryDc[country])
-        for region in self.treeRegionDc:
-            self.tree.Collapse(self.treeRegionDc[region])
-        pass
+#         self.treeBondDc = {}
+#         self.treeCountryDc = {}
+#         self.treeRegionDc = {}
+#         self.treeIssuerDc = {}
 
-    def onRiskTreeQuery(self, item):
-        """Function to query risk tree item when selected 
-        """
-        self.onCollapseAll()
-        if item in self.treeIssuerDc:
-            exampleBond=bonds[bonds['TICKER']==item].index[0]
-            self.tree.Expand(self.treeIssuerDc[item])
-            self.tree.Expand(self.treeCountryDc[countries[countries['Country code']==bonds.loc[exampleBond,'CNTRY_OF_RISK']]['Long name'].iloc[0]])
-            self.tree.Expand(self.treeRegionDc[countries[countries['Country code']==bonds.loc[exampleBond,'CNTRY_OF_RISK']]['Region'].iloc[0]])            
-        elif item in self.treeBondDc:
-            self.tree.Expand(self.treeIssuerDc[bonds.loc[item,'TICKER']])
-            self.tree.Expand(self.treeCountryDc[countries[countries['Country code']==bonds.loc[item,'CNTRY_OF_RISK']]['Long name'].iloc[0]])
-            self.tree.Expand(self.treeRegionDc[countries[countries['Country code']==bonds.loc[item,'CNTRY_OF_RISK']]['Region'].iloc[0]])
-        else:
-            pass
+#         self.onUpdateTree(MessageContainer('empty'))
 
-    def OnRightUp(self, evt):
-        pos = evt.GetPosition()
-        item, flags, col = self.tree.HitTest(pos)
-        if item:
-            x=('Flags: %s, Col:%s, Text: %s' % (flags, col, self.tree.GetItemText(item, col)))
-            print x
+#         self.tree.Expand(self.root)
 
-    def onSize(self, evt):
-        self.tree.SetSize(self.GetSize())
+#         self.tree.GetMainWindow().Bind(wx.EVT_RIGHT_UP, self.OnRightUp)
+#         self.tree.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.OnActivate)
+#         pub.subscribe(self.onUpdateTree, "REDRAW_RISK_TREE")
 
-    def onUpdateTree(self, message):
-        '''Event listener for the REDRAW_RISK_TREE event.
-        '''
-        wx.CallAfter(self.doBuildTree, self.riskTreeManager.displayGroup,self.riskTreeManager.traded_bonds)
 
-    def doBuildTree(self, displayGroup, traded_bonds):
-        self.tree.Freeze()
-        self.tree.DeleteAllItems()
-        self.root = self.tree.AddRoot("Total")
-        self.tree.SetItemText(self.root,'{:,.0f}'.format(displayGroup['Qty'].sum()), 1)
-        self.tree.SetItemText(self.root,'{:,.0f}'.format(displayGroup['EODValue'].sum()), 3)
-        self.tree.SetItemText(self.root,'{:,.0f}'.format(displayGroup['Risk'].sum()), 4)
-        self.tree.SetItemText(self.root, '{:,.0f}'.format(self.riskTreeManager.th.df[self.riskTreeManager.th.df['Date']==todayDateSTR]['Qty'].sum()), 5)#get rid of trades where not a bond
-        for region in displayGroup.index.get_level_values('Region').unique():
-            childRegion = self.tree.AppendItem(self.root, region)
-            self.tree.SetItemImage(childRegion, self.fldridx, which = wx.TreeItemIcon_Normal)
-            self.tree.SetItemImage(childRegion, self.fldropenidx, which = wx.TreeItemIcon_Expanded)
-            self.treeRegionDc[region]=childRegion
-            self.tree.SetItemText(childRegion, '{:,.0f}'.format(displayGroup.loc[region]['Qty'].sum()), 1)
-            self.tree.SetItemText(childRegion, '{:,.0f}'.format(displayGroup.loc[region]['EODValue'].sum()), 3)
-            self.tree.SetItemText(childRegion, '{:,.0f}'.format(displayGroup.loc[region]['Risk'].sum()), 4)
-            self.tree.SetItemText(childRegion,'{:,.0f}'.format(tradeVolume(self.riskTreeManager.th,'Region',region)), 5)
-            for country in displayGroup.loc[region].index.get_level_values('LongCountry').unique():
-                childCountry = self.tree.AppendItem(childRegion, country)
-                self.tree.SetItemImage(childCountry, self.fldridx, which = wx.TreeItemIcon_Normal)
-                self.tree.SetItemImage(childCountry, self.fldropenidx, which = wx.TreeItemIcon_Expanded)
-                self.treeCountryDc[country] = childCountry
-                self.tree.SetItemText(childCountry, '{:,.0f}'.format(displayGroup.loc[region,country]['Qty'].sum()), 1)
-                self.tree.SetItemText(childCountry, '{:,.0f}'.format(displayGroup.loc[region,country]['EODValue'].sum()), 3)
-                self.tree.SetItemText(childCountry, '{:,.0f}'.format(displayGroup.loc[region,country]['Risk'].sum()), 4)
-                countryCode=countries[countries['Long name']==country]['Country code'].iloc[0]
-                self.tree.SetItemText(childCountry,'{:,.0f}'.format(tradeVolume(self.riskTreeManager.th,'Country',countryCode)), 5)
-                for issuer in displayGroup.loc[region,country].index.get_level_values('Issuer').unique():
-                    childIssuer = self.tree.AppendItem(childCountry, issuer)
-                    self.tree.SetItemImage(childIssuer, self.fldridx, which = wx.TreeItemIcon_Normal)
-                    self.tree.SetItemImage(childIssuer, self.fldropenidx, which = wx.TreeItemIcon_Expanded)
-                    self.treeIssuerDc[issuer] = childIssuer
-                    self.tree.SetItemText(childIssuer, '{:,.0f}'.format(displayGroup.loc[region,country,issuer]['Qty'].sum()), 1)
-                    self.tree.SetItemText(childIssuer, '{:,.0f}'.format(displayGroup.loc[region,country,issuer]['EODValue'].sum()), 3)
-                    self.tree.SetItemText(childIssuer, '{:,.0f}'.format(displayGroup.loc[region,country,issuer]['Risk'].sum()), 4)
-                    self.tree.SetItemText(childIssuer,'{:,.0f}'.format(tradeVolume(self.riskTreeManager.th,'Issuer',issuer)), 5)
-                    for bond in displayGroup.loc[region,country,issuer].index.get_level_values('Bond').unique():
-                        childBond = self.tree.AppendItem(childIssuer,  bond)
-                        self.tree.SetItemImage(childBond, self.fileidx, which = wx.TreeItemIcon_Normal)
-                        self.treeBondDc[bond] = childBond
-                        self.tree.SetItemText(childBond, '{:,.0f}'.format(displayGroup.loc[region,country,issuer,bond]['Qty']), 1)
-                        self.tree.SetItemText(childBond, '{:,.0f}'.format(displayGroup.loc[region,country,issuer,bond]['USDQty']), 2)
-                        self.tree.SetItemText(childBond, '{:,.0f}'.format(displayGroup.loc[region,country,issuer,bond]['EODValue']), 3)
-                        self.tree.SetItemText(childBond, '{:,.0f}'.format(displayGroup.loc[region,country,issuer,bond]['Risk']), 4)
-                        self.tree.SetItemText(childBond,'{:,.0f}'.format(tradeVolume(self.riskTreeManager.th,'Bond',bond)), 5)
-                        self.tree.SetItemText(childBond, '{:,.2f}'.format(self.riskTreeManager.th.positions.loc[bond,'EODPrice']), 6)
-                        if bond in list(traded_bonds):#has to be a list
-                            self.tree.Expand(childRegion)
-        self.tree.Expand(self.root)
-        self.tree.Thaw()
-        pub.sendMessage('RISKTREE_REDRAWN', message=MessageContainer('RiskTree'))
+#     def OnActivate(self, evt):
+#         """Function to expand tree branch when selected 
+#         """
+#         if evt.GetItem() in self.treeBondDc.values():
+#             self.parent.mainframe.onBondQuerySub(self.tree.GetItemText(evt.GetItem()))
+#         elif evt.GetItem() in self.treeIssuerDc.values():
+#             self.parent.mainframe.log.Clear()
+#             self.parent.mainframe.notebook.SetSelection(0)
+#             self.parent.mainframe.th.simpleQuery('Issuer',self.tree.GetItemText(evt.GetItem()))
+#         elif evt.GetItem() in self.treeCountryDc.values():
+#             self.parent.mainframe.log.Clear()
+#             self.parent.mainframe.notebook.SetSelection(0)
+#             country_code=countries[countries['Long name']==self.tree.GetItemText(evt.GetItem())]['Country code'].iloc[0]
+#             self.parent.mainframe.th.simpleQuery('Country',country_code)
+#         elif evt.GetItem() in self.treeRegionDc.values():
+#             self.parent.mainframe.log.Clear()
+#             self.parent.mainframe.notebook.SetSelection(0)
+#             self.parent.mainframe.th.simpleQuery('Region',self.tree.GetItemText(evt.GetItem()))
+#         else:
+#             pass
 
-    def takeScreenshot(self):
-        """
-        Function to take screenshot of risk tree. 
+#     def onCollapseAll(self):
+#         """Function to collapse tree branch when selected 
+#         """
+#         for issuer in self.treeIssuerDc:
+#             self.tree.Collapse(self.treeIssuerDc[issuer])
+#         for country in self.treeCountryDc:
+#             self.tree.Collapse(self.treeCountryDc[country])
+#         for region in self.treeRegionDc:
+#             self.tree.Collapse(self.treeRegionDc[region])
+#         pass
 
-        Original code:
-        http://www.blog.pythonlibrary.org/2010/04/16/how-to-take-a-screenshot-of-your-wxpython-app-and-print-it/
-        """
-        print 'Taking screenshot...'
-        rect=self.GetRect()
-        dcScreen = wx.WindowDC(self)
-        bmp = wx.EmptyBitmap(rect.width,rect.height)
-        memDC = wx.MemoryDC()
+#     def onRiskTreeQuery(self, item):
+#         """Function to query risk tree item when selected 
+#         """
+#         self.onCollapseAll()
+#         if item in self.treeIssuerDc:
+#             exampleBond=bonds[bonds['TICKER']==item].index[0]
+#             self.tree.Expand(self.treeIssuerDc[item])
+#             self.tree.Expand(self.treeCountryDc[countries[countries['Country code']==bonds.loc[exampleBond,'CNTRY_OF_RISK']]['Long name'].iloc[0]])
+#             self.tree.Expand(self.treeRegionDc[countries[countries['Country code']==bonds.loc[exampleBond,'CNTRY_OF_RISK']]['Region'].iloc[0]])            
+#         elif item in self.treeBondDc:
+#             self.tree.Expand(self.treeIssuerDc[bonds.loc[item,'TICKER']])
+#             self.tree.Expand(self.treeCountryDc[countries[countries['Country code']==bonds.loc[item,'CNTRY_OF_RISK']]['Long name'].iloc[0]])
+#             self.tree.Expand(self.treeRegionDc[countries[countries['Country code']==bonds.loc[item,'CNTRY_OF_RISK']]['Region'].iloc[0]])
+#         else:
+#             pass
 
-        memDC.SelectObject(bmp)
-        memDC.Blit(0,
-                   0,
-                   rect.width,
-                   rect.height,
-                   dcScreen,
-                   0,
-                   0
-                   )
+#     def OnRightUp(self, evt):
+#         pos = evt.GetPosition()
+#         item, flags, col = self.tree.HitTest(pos)
+#         if item:
+#             x=('Flags: %s, Col:%s, Text: %s' % (flags, col, self.tree.GetItemText(item, col)))
+#             print x
 
-        memDC.SelectObject(wx.NullBitmap)
+#     def onSize(self, evt):
+#         self.tree.SetSize(self.GetSize())
 
-        img = bmp.ConvertToImage()
-        filename = 'risktree.png'
-        img.SaveFile(filename, wx.BITMAP_TYPE_PNG)
-        print '...saving as png...'
+#     def onUpdateTree(self, message):
+#         '''Event listener for the REDRAW_RISK_TREE event.
+#         '''
+#         wx.CallAfter(self.doBuildTree, self.riskTreeManager.displayGroup,self.riskTreeManager.traded_bonds)
 
-        win32api.ShellExecute(0,"print",filename,'/d: "%s"' %win32print.GetDefaultPrinter(), ".",0)
+#     def doBuildTree(self, displayGroup, traded_bonds):
+#         self.tree.Freeze()
+#         self.tree.DeleteAllItems()
+#         self.root = self.tree.AddRoot("Total")
+#         self.tree.SetItemText(self.root,'{:,.0f}'.format(displayGroup['Qty'].sum()), 1)
+#         self.tree.SetItemText(self.root,'{:,.0f}'.format(displayGroup['EODValue'].sum()), 3)
+#         self.tree.SetItemText(self.root,'{:,.0f}'.format(displayGroup['Risk'].sum()), 4)
+#         self.tree.SetItemText(self.root, '{:,.0f}'.format(self.riskTreeManager.th.df[self.riskTreeManager.th.df['Date']==todayDateSTR]['Qty'].sum()), 5)#get rid of trades where not a bond
+#         for region in displayGroup.index.get_level_values('Region').unique():
+#             childRegion = self.tree.AppendItem(self.root, region)
+#             self.tree.SetItemImage(childRegion, self.fldridx, which = wx.TreeItemIcon_Normal)
+#             self.tree.SetItemImage(childRegion, self.fldropenidx, which = wx.TreeItemIcon_Expanded)
+#             self.treeRegionDc[region]=childRegion
+#             self.tree.SetItemText(childRegion, '{:,.0f}'.format(displayGroup.loc[region]['Qty'].sum()), 1)
+#             self.tree.SetItemText(childRegion, '{:,.0f}'.format(displayGroup.loc[region]['EODValue'].sum()), 3)
+#             self.tree.SetItemText(childRegion, '{:,.0f}'.format(displayGroup.loc[region]['Risk'].sum()), 4)
+#             self.tree.SetItemText(childRegion,'{:,.0f}'.format(tradeVolume(self.riskTreeManager.th,'Region',region)), 5)
+#             for country in displayGroup.loc[region].index.get_level_values('LongCountry').unique():
+#                 childCountry = self.tree.AppendItem(childRegion, country)
+#                 self.tree.SetItemImage(childCountry, self.fldridx, which = wx.TreeItemIcon_Normal)
+#                 self.tree.SetItemImage(childCountry, self.fldropenidx, which = wx.TreeItemIcon_Expanded)
+#                 self.treeCountryDc[country] = childCountry
+#                 self.tree.SetItemText(childCountry, '{:,.0f}'.format(displayGroup.loc[region,country]['Qty'].sum()), 1)
+#                 self.tree.SetItemText(childCountry, '{:,.0f}'.format(displayGroup.loc[region,country]['EODValue'].sum()), 3)
+#                 self.tree.SetItemText(childCountry, '{:,.0f}'.format(displayGroup.loc[region,country]['Risk'].sum()), 4)
+#                 countryCode=countries[countries['Long name']==country]['Country code'].iloc[0]
+#                 self.tree.SetItemText(childCountry,'{:,.0f}'.format(tradeVolume(self.riskTreeManager.th,'Country',countryCode)), 5)
+#                 for issuer in displayGroup.loc[region,country].index.get_level_values('Issuer').unique():
+#                     childIssuer = self.tree.AppendItem(childCountry, issuer)
+#                     self.tree.SetItemImage(childIssuer, self.fldridx, which = wx.TreeItemIcon_Normal)
+#                     self.tree.SetItemImage(childIssuer, self.fldropenidx, which = wx.TreeItemIcon_Expanded)
+#                     self.treeIssuerDc[issuer] = childIssuer
+#                     self.tree.SetItemText(childIssuer, '{:,.0f}'.format(displayGroup.loc[region,country,issuer]['Qty'].sum()), 1)
+#                     self.tree.SetItemText(childIssuer, '{:,.0f}'.format(displayGroup.loc[region,country,issuer]['EODValue'].sum()), 3)
+#                     self.tree.SetItemText(childIssuer, '{:,.0f}'.format(displayGroup.loc[region,country,issuer]['Risk'].sum()), 4)
+#                     self.tree.SetItemText(childIssuer,'{:,.0f}'.format(tradeVolume(self.riskTreeManager.th,'Issuer',issuer)), 5)
+#                     for bond in displayGroup.loc[region,country,issuer].index.get_level_values('Bond').unique():
+#                         childBond = self.tree.AppendItem(childIssuer,  bond)
+#                         self.tree.SetItemImage(childBond, self.fileidx, which = wx.TreeItemIcon_Normal)
+#                         self.treeBondDc[bond] = childBond
+#                         self.tree.SetItemText(childBond, '{:,.0f}'.format(displayGroup.loc[region,country,issuer,bond]['Qty']), 1)
+#                         self.tree.SetItemText(childBond, '{:,.0f}'.format(displayGroup.loc[region,country,issuer,bond]['USDQty']), 2)
+#                         self.tree.SetItemText(childBond, '{:,.0f}'.format(displayGroup.loc[region,country,issuer,bond]['EODValue']), 3)
+#                         self.tree.SetItemText(childBond, '{:,.0f}'.format(displayGroup.loc[region,country,issuer,bond]['Risk']), 4)
+#                         self.tree.SetItemText(childBond,'{:,.0f}'.format(tradeVolume(self.riskTreeManager.th,'Bond',bond)), 5)
+#                         self.tree.SetItemText(childBond, '{:,.2f}'.format(self.riskTreeManager.th.positions.loc[bond,'EODPrice']), 6)
+#                         if bond in list(traded_bonds):#has to be a list
+#                             self.tree.Expand(childRegion)
+#         self.tree.Expand(self.root)
+#         self.tree.Thaw()
+#         pub.sendMessage('RISKTREE_REDRAWN', message=MessageContainer('RiskTree'))
 
-        del dcScreen
-        del memDC
+#     def takeScreenshot(self):
+#         """
+#         Function to take screenshot of risk tree. 
+
+#         Original code:
+#         http://www.blog.pythonlibrary.org/2010/04/16/how-to-take-a-screenshot-of-your-wxpython-app-and-print-it/
+#         """
+#         print 'Taking screenshot...'
+#         rect=self.GetRect()
+#         dcScreen = wx.WindowDC(self)
+#         bmp = wx.EmptyBitmap(rect.width,rect.height)
+#         memDC = wx.MemoryDC()
+
+#         memDC.SelectObject(bmp)
+#         memDC.Blit(0,
+#                    0,
+#                    rect.width,
+#                    rect.height,
+#                    dcScreen,
+#                    0,
+#                    0
+#                    )
+
+#         memDC.SelectObject(wx.NullBitmap)
+
+#         img = bmp.ConvertToImage()
+#         filename = 'risktree.png'
+#         img.SaveFile(filename, wx.BITMAP_TYPE_PNG)
+#         print '...saving as png...'
+
+#         win32api.ShellExecute(0,"print",filename,'/d: "%s"' %win32print.GetDefaultPrinter(), ".",0)
+
+#         del dcScreen
+#         del memDC
 
 
 
@@ -655,28 +655,28 @@ class DataFrameToTreeListCtrl(wx.Panel):
         #self.onCollapseAll()
 
 
-class TreeTest(wx.Frame):
-    def __init__(self):
-        wx.Frame.__init__(self,None, wx.ID_ANY, "Tree test",size=(925,850))
-        #panel = wx.Panel(frame)
-        #th = TradeHistoryAnalysis.TradeHistory()
-        #df = th.df[th.df['Year']==2016]
-        #df.to_csv('c:\\temp\\treetest.csv')
-        df = pandas.read_csv('c:\\temp\\treetest.csv')
-        groupedData = df.groupby(['Region','Country','Bond'])
-        treeHeader = 'Region'
-        treeHeaderWidth = 200
-        columnHeaders = ['Position','Volume']
-        columnList = ['USDQty','AbsQty']
-        columnWidths = [100,200]
-        columnAlignment = [wx.ALIGN_RIGHT,wx.ALIGN_RIGHT]
-        columnFormats = ['{:,.0f}','{:,.0f}']
-        tree = DataFrameToTreeListCtrl(self, groupedData, treeHeader, treeHeaderWidth, columnHeaders, columnList, columnWidths, columnAlignment, columnFormats, 'TEST_TREE')
-        box = wx.BoxSizer(wx.VERTICAL)
-        box.Add(tree, 1, wx.EXPAND)
-        self.SetAutoLayout(True)
-        self.SetSizer(box)
-        self.Layout()
+# class TreeTest(wx.Frame):
+#     def __init__(self):
+#         wx.Frame.__init__(self,None, wx.ID_ANY, "Tree test",size=(925,850))
+#         #panel = wx.Panel(frame)
+#         #th = TradeHistoryAnalysis.TradeHistory()
+#         #df = th.df[th.df['Year']==2016]
+#         #df.to_csv('c:\\temp\\treetest.csv')
+#         df = pandas.read_csv('c:\\temp\\treetest.csv')
+#         groupedData = df.groupby(['Region','Country','Bond'])
+#         treeHeader = 'Region'
+#         treeHeaderWidth = 200
+#         columnHeaders = ['Position','Volume']
+#         columnList = ['USDQty','AbsQty']
+#         columnWidths = [100,200]
+#         columnAlignment = [wx.ALIGN_RIGHT,wx.ALIGN_RIGHT]
+#         columnFormats = ['{:,.0f}','{:,.0f}']
+#         tree = DataFrameToTreeListCtrl(self, groupedData, treeHeader, treeHeaderWidth, columnHeaders, columnList, columnWidths, columnAlignment, columnFormats, 'TEST_TREE')
+#         box = wx.BoxSizer(wx.VERTICAL)
+#         box.Add(tree, 1, wx.EXPAND)
+#         self.SetAutoLayout(True)
+#         self.SetSizer(box)
+#         self.Layout()
 
 
 class RiskTree(DataFrameToTreeListCtrl):

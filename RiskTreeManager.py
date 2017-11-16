@@ -116,10 +116,13 @@ class RiskTreeManager():
             idx = (self.th.positionsByISINBook['Bond'] == bond)
             if idx.sum() > 0:
                 price = message.data['MID']
+                priceY = self.th.positionsByISINBook.loc[idx,'PriceY'].iloc[0]
+                pf = self.bdm.df.at[bond,'PRINCIPAL_FACTOR']
                 self.th.positionsByISINBook.loc[idx,'PriceT'] = price
-                self.th.positionsByISINBook.loc[idx,'SODPnL'] = self.th.positionsByISINBook.loc[idx,'SOD_Pos'] * self.bdm.df.loc[bond,'PRINCIPAL_FACTOR'] * (price - self.th.positionsByISINBook.loc[idx,'PriceY'])/100.
-                # self.th.positionsByISINBook.loc[idx,'SODPnL'].fillna(0, inplace=True) # this is a view
-                self.th.positionsByISINBook.loc[idx,'SODPnL'] = self.th.positionsByISINBook.loc[idx,'SODPnL'].fillna(0) # this is a view
+                #self.th.positionsByISINBook.loc[idx,'SODPnL'] = self.th.positionsByISINBook.loc[idx,'SOD_Pos'] * self.bdm.df.loc[bond,'PRINCIPAL_FACTOR'] * (price - self.th.positionsByISINBook.loc[idx,'PriceY'])/100.
+                self.th.positionsByISINBook.loc[idx,'SODPnL'] = self.th.positionsByISINBook.loc[idx,'SOD_Pos'] * pf * (price - priceY)/100.
+                self.th.positionsByISINBook.loc[idx,'SODPnL'].fillna(0, inplace=True)
+                # self.th.positionsByISINBook.loc[idx,'SODPnL'] = self.th.positionsByISINBook.loc[idx,'SODPnL'].fillna(0) # this is a view
                 fx = ccy.at[bonds.at[bond,'CRNCY'], '2017']
                 if bond in self.new_trades['Bond'].values:
                     for (k, grp) in self.positionDeltas:
@@ -128,7 +131,8 @@ class RiskTreeManager():
                             if allisins[isin] == bond:#grp['Qty'].sum()!=0 
                                 idx = (self.new_trades['ISIN'] == isin) & (self.new_trades['Book'] == k[0])
                                 self.new_trades.loc[idx,'TradePnL'] = self.new_trades.loc[idx,'Qty']*(price-self.new_trades.loc[idx,'Price'])/100.
-                                self.th.positionsByISINBook.at[k[0]+'-'+k[1],'TradePnL'] = self.th.positionsByISINBook.at[k[0]+'-'+k[1],'PRINCIPAL_FACTOR'] * self.new_trades.loc[idx,'TradePnL'].sum()
+                                #self.th.positionsByISINBook.at[k[0]+'-'+k[1],'TradePnL'] = self.th.positionsByISINBook.at[k[0]+'-'+k[1],'PRINCIPAL_FACTOR'] * self.new_trades.loc[idx,'TradePnL'].sum()
+                                self.th.positionsByISINBook.at[k[0]+'-'+k[1],'TradePnL'] = pf * self.new_trades.loc[idx,'TradePnL'].sum()
                         except:
                             #bond is dummy
                             pass
@@ -282,6 +286,6 @@ class RiskTreeManager():
             except:
                 print 'error finding a price for ' + key
         #pass
-        #self.th.positionsByISINBook.to_csv(TEMPPATH+'test.csv')
+        # self.th.positionsByISINBook.to_csv(TEMPPATH+'test.csv')
         #self.displayPositions.to_csv(TEMPPATH+'test2.csv')
 

@@ -7,6 +7,13 @@ hdr = '{http://www.fpml.org/2008/FpML-4-5}'
 hdr2 = '{http://www.standardbank.com/messagebus/core/FpML-4-5/extension}'
 
 
+def find_file_names(dt):
+	allfiles = os.listdir(XMLPATH)
+	allxmlfiles = filter(lambda x: x[-4:]=='.xml', allfiles)
+	dtfiles = filter(lambda x: x[5:13]==dt.strftime('%Y%m%d'), allxmlfiles)
+	return dtfiles
+
+
 class TOMSTicket():
 	def __init__(self, file='Alex_Bond_Example.xml'):
 		self.root = ElementTree.parse(XMLPATH+file).getroot()
@@ -61,38 +68,6 @@ class TOMSTicket():
 		self.front_array = [self.reference, 'insid', self.isin, self.price, self.quantity, self.frtdate, self.book, self.ccy, 'dummystatus', 'TR', self.counterparty, 'SP', 0, 0]
 
 
-	# def front_array(self):
-	# 	# fra = []
-	# 	# fra.append(self.reference)
-	# 	# fra.append('insid')
-	# 	# fra.append(self.isin)
-	# 	# fra.append(self.price)
-	# 	# fra.append(self.quantity)
-	# 	# fra.append(self.frtdate)
-	# 	# fra.append(self.book)
-	# 	# fra.append(self.ccy)
-	# 	# fra.append('dummystatus')
-	# 	# fra.append('TR')
-	# 	# fra.append(self.counterparty)
-	# 	# fra.append('SP')
-	# 	# fra.append(0)
-	# 	# fra.append(0)
-	# 	return [self.reference, 'insid', self.isin, self.price, self.quantity, self.frtdate, self.book, self.ccy, 'dummystatus', 'TR', self.counterparty, 'SP', 0, 0]
-	# 	#return fra
-
-
-
-
-
-
-
-def find_file_names(dt):
-	allfiles = os.listdir(XMLPATH)
-	allxmlfiles = filter(lambda x: x[-4:]=='.xml', allfiles)
-	dtfiles = filter(lambda x: x[5:13]==dt.strftime('%Y%m%d'), allxmlfiles)
-	return dtfiles
-
-
 class RiskParser():
 
 	def __init__(self):
@@ -127,23 +102,8 @@ class RiskParser():
 		self.xmls = newxmls
 		d = [x.front_array for x in self.xmls]
 		self.df = pandas.DataFrame(columns=['trdnbr', 'insid', 'isin', 'trade_price', 'quantity', 'trade_time', 'portfolio', 'trade_curr', 'status', 'Trader', 'Counterparty', 'Salesperson', 'Sales Credit', 'Sales Credit MarkUp'], data=d)
-		self.df = self.df.set_index('trdnbr') #DO WE NEED THIS
-
-		#self.to_df()
-
+		self.df = self.df.set_index('trdnbr') 
 
 	def print_trade_list(self):
 		for x in self.xmls:
 			print x.front_array
-
-	# def to_df(self):
-	# 	#trdnbr;insid;isin;trade_price;quantity;trade_time;portfolio;trade_curr;status;Trader;Counterparty;Salesperson;Sales Credit;Sales Credit MarkUp
-	# 	# d = []
-	# 	# for x in self.xmls:
-	# 	# 	d.append(x.front_array())
-	# 	d = [x.front_array for x in self.xmls]
-	# 	self.df = pandas.DataFrame(columns=['trdnbr', 'insid', 'isin', 'trade_price', 'quantity', 'trade_time', 'portfolio', 'trade_curr', 'status', 'Trader', 'Counterparty', 'Salesperson', 'Sales Credit', 'Sales Credit MarkUp'], data=d)
-	# 	self.df = self.df.set_index('trdnbr') #DO WE NEED THIS
-
-
-

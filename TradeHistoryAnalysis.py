@@ -267,8 +267,8 @@ class TradeHistory:
         del df['TRADE_TIME']
         del df['DateDT']
         df['portfolio'] = df['portfolio'].apply(msx2frtbook)
-        df['Sales Credit'] = df['Sales Credit']/abs(df['quantity'])
-        df['Sales Credit MarkUp'] = df['Sales Credit MarkUp']/abs(df['quantity'])
+        df['Sales Credit'] = df['Sales Credit']/abs(df['quantity']) * 10000
+        df['Sales Credit MarkUp'] = df['Sales Credit MarkUp']/abs(df['quantity']) * 10000
 
 
 
@@ -479,10 +479,11 @@ class TradeHistory:
     def appendToday(self,thToday):
         """
         """
-        self.df = self.df[self.df['Date']!=datetime.datetime.today().strftime('%d/%m/%y')]#so can do repetitively
-        self.df = self.df.append(thToday.df, ignore_index=True)
-        self.df = self.df.reindex()
-        self.build_positions()#This will get the live risk
+        if thToday.df.shape[0]>0:
+            self.df = self.df[self.df['Date']!=datetime.datetime.today().strftime('%d/%m/%y')]#so can do repetitively
+            self.df = self.df.append(thToday.df, ignore_index=True)
+            self.df = self.df.reindex()
+            self.build_positions()#This will get the live risk
         #self.build_positions_new()
         pass
 

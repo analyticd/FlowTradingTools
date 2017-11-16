@@ -634,7 +634,7 @@ class PricingGrid(gridlib.Grid):
                                 else:
                                     self.SetCellValue(i, j, value)
                         except:
-                            print header, i, j
+                            print header, value, i, j
                 else:
                     if j == 0:
                         self.SetCellValue(i, j, bond)

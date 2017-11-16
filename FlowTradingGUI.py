@@ -39,13 +39,11 @@ from TradeHistoryAnalysis import TradeHistory # this is important so you can imp
 import ModelPortfolio
 import FO_Toolkit
 # import RiskTreeView
-# import FrontPnL
 # import BondDataModel
 import Pricer
 from RiskTreeManager import RiskTreeManager
 import ma_analysis
 # import time
-# import mpfiPricer
 from StaticDataImport import APPPATH, TEMPPATH, bonds, traderLogins
 from ChartingPanel import ChartingPanel
 import toms_parser
@@ -243,7 +241,6 @@ class MainForm(wx.Frame):
     onPlotYTDPerformance()
 
     ---Front Actions---
-    onLogInFront()
     onTodayTradesSteps()
     onTodayTrades()
     onOpenRepos()
@@ -554,8 +551,8 @@ class MainForm(wx.Frame):
 
     ############PRICER ACTIONS############
     def onLaunchPricer(self,event):
-        if self.isTrader:
-            self.tabRisk.onFillEODPrices(event)
+        #if self.isTrader:
+        #    self.tabRisk.onFillEODPrices(event)
         self.pricer = Pricer.PricerWindow(self)
         self.pricer.Show()
         pass
@@ -798,59 +795,11 @@ class MainForm(wx.Frame):
 
     ############FRONT ACTIONS############
 
-    def onLogInFront(self,event=None):
-        """Function to log in to FRONT 
-        """
-        self.log.Clear()
-        #Set default username
-        # self.front_username=traderLogins[GetUserName()]
-        # dlg = LoginDialog(self.front_username)
-        # res = dlg.ShowModal()
-        # editedUser=dlg.user.GetValue()
-
-        #If user changed the value in the dialog, we grab the new value 
-        # if traderLogins[GetUserName()] != editedUser:
-        #     self.front_username = editedUser
-        # self.front_password=dlg.password.GetValue()
-        # dlg.Destroy()
-        self.front_username = 'ALMOSNA'
-        self.front_password = 'deprecated'
-        #self.front_connection = FO_Toolkit.FrontConnection(self.front_username, self.front_password)
-        self.connectedToFront = True
-        pass
-
-    def onTodayTradesStepsOldFront(self):
-        """Function to load today's trades  
-        """
-        pythoncom.CoInitialize()
-        self.log.Clear()
-        if not self.connectedToFront:
-            self.onLogInFront()
-        savepath = 'newtrades.csv'
-        #argstring = self.front_username+' '+self.front_password+' '+self.todayDT.strftime('%Y-%m-%d') + ' ' + savepath
-        #opstr='python '+APPPATH+'FO_toolkit.pyc new_trades '+argstring
-        #subprocess.call(opstr)
-        self.front_connection.new_trades_to_csv(self.todayDT.strftime('%Y-%m-%d'), savepath)
-        newTrades = pandas.read_csv(TEMPPATH+savepath)
-        self.thToday = TradeHistory(newTrades)
-        self.th.appendToday(self.thToday)
-        print 'See Trade Activity tab for new trades.'
-        pass
-
 
     def onTodayTradesSteps(self):
         """Function to load today's trades  
         """
-        #pythoncom.CoInitialize()
         self.log.Clear()
-        # if not self.connectedToFront:
-        #     self.onLogInFront()
-        # savepath = 'newtrades.csv'
-        #argstring = self.front_username+' '+self.front_password+' '+self.todayDT.strftime('%Y-%m-%d') + ' ' + savepath
-        #opstr='python '+APPPATH+'FO_toolkit.pyc new_trades '+argstring
-        #subprocess.call(opstr)
-        #self.front_connection.new_trades_to_csv(self.todayDT.strftime('%Y-%m-%d'), savepath)
-        #newTrades = pandas.read_csv(TEMPPATH+savepath)
         self.xmlLogger.refresh()
         self.thToday = TradeHistory(self.xmlLogger.df)
         self.th.appendToday(self.thToday)
@@ -871,8 +820,6 @@ class MainForm(wx.Frame):
         """
         self.log.Clear()
         self.notebook.SetSelection(0)
-        if not self.connectedToFront:
-            self.onLogInFront(event)
         busyDlg = wx.BusyInfo('Fetching live repos from Front...', parent=self)
         savepath = 'openrepos.csv'
         argstring = self.front_username+' '+self.front_password+' ' + savepath
