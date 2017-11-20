@@ -16,56 +16,61 @@ def find_file_names(dt):
 
 class TOMSTicket():
 	def __init__(self, file='Alex_Bond_Example.xml'):
-		self.root = ElementTree.parse(XMLPATH+file).getroot()
-		self.tradeBundle = self.root.find('tradeBundles').find('tradeBundle')
-		self.reference = self.tradeBundle.find('reference').text
-		self.typology = self.tradeBundle.find('typology').text
-		if self.typology != 'IRD-BONDS':
-			return
-		self.action = self.tradeBundle.find('action').text
-		self.prev_reference = self.tradeBundle.find('previousReference').text
-		self.action = self.tradeBundle.find('action').text
-		self.trades = self.tradeBundle.find('trades')
-		self.trades2 = self.trades.find(hdr + 'FpML')
-		self.trades3 = self.trades2.find(hdr + 'trade')
-		self.contract = self.trades3.find(hdr2 + 'bondContract')
-		self.price = float(self.contract.findtext(hdr2+'cleanPrice'))
-		self.notional = float(self.contract.find(hdr2+'notionalAmount').findtext(hdr + 'amount'))
-		self.ccy = self.contract.find(hdr2+'notionalAmount').findtext(hdr + 'currency')
-		self.dateSTR = self.trades3.find(hdr + 'tradeHeader').findtext(hdr2 + 'tradeInsertDate')
-		self.frtdate = self.dateSTR[0:10] + ' ' + self.dateSTR[11:19]
-		p1 = self.trades2.findall(hdr + 'party')[0]
-		p2 = self.trades2.findall(hdr + 'party')[1]
-		party1 = p1.findtext(hdr + 'partyName')
-		party2 = p2.findtext(hdr + 'partyName')
-		b = self.contract.find(hdr+'buyerPartyReference').items()[0][1]
-		self.isin = self.contract.find(hdr2 + 'bond').findall(hdr + 'instrumentId')[2].text
-		if b=='party1':
-			self.buyer = party1
-			self.seller = party2
-		else:
-			self.buyer = party2
-			self.seller = party1
-		bk1 = p1.findall(hdr+'partyId')[2].text
-		bk2 = p2.findall(hdr+'partyId')[2].text
-		firm1 = p1.findall(hdr+'partyId')[4].text
-		firm2 = p1.findall(hdr+'partyId')[4].text
-		if p1.find(hdr+'partyName').text == 'SBL':
-			self.book = bk1[7:]
-			self.counterparty = p2.find(hdr+'partyName').text
-			if self.buyer == party1:
-				self.quantity = self.notional
+		try:
+			self.root = ElementTree.parse(XMLPATH+file).getroot()
+			self.tradeBundle = self.root.find('tradeBundles').find('tradeBundle')
+			self.reference = self.tradeBundle.find('reference').text
+			self.typology = self.tradeBundle.find('typology').text
+			if self.typology != 'IRD-BONDS':
+				return
+			self.action = self.tradeBundle.find('action').text
+			if self.action == 'CXLNEW':
+				return
+			self.prev_reference = self.tradeBundle.find('previousReference').text
+			self.action = self.tradeBundle.find('action').text
+			self.trades = self.tradeBundle.find('trades')
+			self.trades2 = self.trades.find(hdr + 'FpML')
+			self.trades3 = self.trades2.find(hdr + 'trade')
+			self.contract = self.trades3.find(hdr2 + 'bondContract')
+			self.price = float(self.contract.findtext(hdr2+'cleanPrice'))
+			self.notional = float(self.contract.find(hdr2+'notionalAmount').findtext(hdr + 'amount'))
+			self.ccy = self.contract.find(hdr2+'notionalAmount').findtext(hdr + 'currency')
+			self.dateSTR = self.trades3.find(hdr + 'tradeHeader').findtext(hdr2 + 'tradeInsertDate')
+			self.frtdate = self.dateSTR[0:10] + ' ' + self.dateSTR[11:19]
+			p1 = self.trades2.findall(hdr + 'party')[0]
+			p2 = self.trades2.findall(hdr + 'party')[1]
+			party1 = p1.findtext(hdr + 'partyName')
+			party2 = p2.findtext(hdr + 'partyName')
+			b = self.contract.find(hdr+'buyerPartyReference').items()[0][1]
+			self.isin = self.contract.find(hdr2 + 'bond').findall(hdr + 'instrumentId')[2].text
+			if b=='party1':
+				self.buyer = party1
+				self.seller = party2
 			else:
-				self.quantity = - self.notional
-		else:
-			self.book = bk2[7:]
-			self.counterparty = p1.find(hdr+'partyName').text
-			if self.buyer == party2:
-				self.quantity = self.notional
+				self.buyer = party2
+				self.seller = party1
+			bk1 = p1.findall(hdr+'partyId')[2].text
+			bk2 = p2.findall(hdr+'partyId')[2].text
+			firm1 = p1.findall(hdr+'partyId')[4].text
+			firm2 = p1.findall(hdr+'partyId')[4].text
+			if p1.find(hdr+'partyName').text == 'SBL':
+				self.book = bk1[7:]
+				self.counterparty = p2.find(hdr+'partyName').text
+				if self.buyer == party1:
+					self.quantity = self.notional
+				else:
+					self.quantity = - self.notional
 			else:
-				self.quantity = - self.notional
-		#trdnbr;insid;isin;trade_price;quantity;trade_time;portfolio;trade_curr;status;Trader;Counterparty;Salesperson;Sales Credit;Sales Credit MarkUp
-		self.front_array = [self.reference, 'insid', self.isin, self.price, self.quantity, self.frtdate, self.book, self.ccy, 'dummystatus', 'TR', self.counterparty, 'SP', 0, 0]
+				self.book = bk2[7:]
+				self.counterparty = p1.find(hdr+'partyName').text
+				if self.buyer == party2:
+					self.quantity = self.notional
+				else:
+					self.quantity = - self.notional
+			#trdnbr;insid;isin;trade_price;quantity;trade_time;portfolio;trade_curr;status;Trader;Counterparty;Salesperson;Sales Credit;Sales Credit MarkUp
+			self.front_array = [self.reference, 'insid', self.isin, self.price, self.quantity, self.frtdate, self.book, self.ccy, 'dummystatus', 'TR', self.counterparty, 'SP', 0, 0]
+		except:
+			print "error parsing " + file
 
 
 class RiskParser():
@@ -83,7 +88,7 @@ class RiskParser():
 		newfiles =  list(set(self.files).difference(self.old_files))
 		for f in newfiles:
 			ticket = TOMSTicket(f)
-			if ticket.typology == 'IRD-BONDS':
+			if ticket.typology == 'IRD-BONDS' and ticket.action != 'CXLNEW':
 				self.all_xmls.append(ticket)
 
 		#Clean cancels:

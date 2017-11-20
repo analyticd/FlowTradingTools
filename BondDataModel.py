@@ -517,7 +517,8 @@ class BondDataModel():
         self.dbYieldHistory = pandas.read_csv(PHPATH+'dbYieldHistory.csv', index_col=0)
         self.dbSpreadHistory = pandas.read_csv(PHPATH+'dbSpreadHistory.csv', index_col=0)
         todayStr = datetime.date.today().strftime('%Y%m%d')
-        if not todayStr in self.dbPriceHistory.columns:
+        ydayStr = self.dtYesterday.strftime('%Y%m%d')
+        if not ydayStr in self.dbPriceHistory.columns:
             last_existing_date = datetime.datetime.strptime(max(self.dbPriceHistory.columns),'%Y%m%d').date()
             start_date = last_existing_date + datetime.timedelta(1)
             end_date = datetime.date.today()

@@ -454,6 +454,7 @@ class RiskTreeBookPnL(wx.Panel):
 
     def doBuildTree(self, displayGroup, traded_bonds):
         #WARNING: SODPNL SUMS CONFUSES CURRENCIES
+        # x=datetime.datetime.now()
         colIDs = [1,2,3,4,5,6,9,10]
         colNames = ['Qty','EODValue','Risk','TotalPnL','MK','SOD_Pos','SODPnL','TradePnL']
         zipped = zip(colIDs,colNames)
@@ -472,38 +473,53 @@ class RiskTreeBookPnL(wx.Panel):
         
             for country in displayGroup.loc[book].index.get_level_values('LongCountry').unique():
                 childCountry = self.tree.AppendItem(childBook, country)
+                bc = (book, country)
                 self.tree.SetItemImage(childCountry, self.fldridx, which = wx.TreeItemIcon_Normal)
                 self.tree.SetItemImage(childCountry, self.fldropenidx, which = wx.TreeItemIcon_Expanded)
-                self.treeCountryDc[(book, country)] = childCountry
+                self.treeCountryDc[bc] = childCountry
+                summed = displayGroup.loc[bc].sum()
                 for (i,col) in zipped:
-                    self.tree.SetItemText(childCountry, '{:,.0f}'.format(displayGroup.loc[book,country][col].sum()), i)
+                    self.tree.SetItemText(childCountry, '{:,.0f}'.format(summed[col]), i)
+                # for (i,col) in zipped:
+                #     self.tree.SetItemText(childCountry, '{:,.0f}'.format(displayGroup.loc[book,country][col].sum()), i)
         
                 for issuer in displayGroup.loc[book,country].index.get_level_values('Issuer').unique():
+                    bci = bc + (issuer,)
                     childIssuer = self.tree.AppendItem(childCountry, issuer)
                     self.tree.SetItemImage(childIssuer, self.fldridx, which = wx.TreeItemIcon_Normal)
                     self.tree.SetItemImage(childIssuer, self.fldropenidx, which = wx.TreeItemIcon_Expanded)
-                    self.treeIssuerDc[(book, country, issuer)] = childIssuer
+                    self.treeIssuerDc[bci] = childIssuer
+                    summed = displayGroup.loc[bci].sum()
                     for (i,col) in zipped:
-                        self.tree.SetItemText(childIssuer, '{:,.0f}'.format(displayGroup.loc[book,country,issuer][col].sum()), i)
+                        self.tree.SetItemText(childIssuer, '{:,.0f}'.format(summed[col]), i)
+                    # for (i,col) in zipped:
+                    #     self.tree.SetItemText(childIssuer, '{:,.0f}'.format(displayGroup.loc[book,country,issuer][col].sum()), i)
         
                     for bond in displayGroup.loc[book,country,issuer].index.get_level_values('Bond').unique():
-                        childBond = self.tree.AppendItem(childIssuer,  bond)
+                        bcib = bci + (bond,)
+                        childBond = self.tree.AppendItem(childIssuer, bond)
                         self.tree.SetItemImage(childBond, self.fileidx, which = wx.TreeItemIcon_Normal)
                         self.tree.SetItemImage(childBond, self.fldropenidx, which = wx.TreeItemIcon_Expanded)
-                        self.treeBondDc[(book, country, issuer, bond)] = childBond
-                        for (i,col) in zipped:
-                            self.tree.SetItemText(childBond, '{:,.0f}'.format(displayGroup.loc[book,country,issuer,bond][col].sum()), i)
-        
-                        for series in displayGroup.loc[book,country,issuer,bond].index.get_level_values('Series').unique():
-                            childSeries = self.tree.AppendItem(childBond,  series)
+                        self.treeBondDc[bcib] = childBond#(book, country, issuer, bond)
+                        summed = displayGroup.loc[bcib].sum()
+                        # for (i, col) in zipped:
+                        #     self.tree.SetItemText(childBond, '{:,.0f}'.format(displayGroup.loc[bcib][col].sum()), i)
+                        for (i, col) in zipped:
+                            self.tree.SetItemText(childBond, '{:,.0f}'.format(summed[col]), i)
+                        
+                        for series in displayGroup.loc[bcib].index.get_level_values('Series').unique():#book,country,issuer,bond
+                            bcibs = bcib + (series,)
+                            childSeries = self.tree.AppendItem(childBond, series)
                             self.tree.SetItemImage(childSeries, self.fileidx, which = wx.TreeItemIcon_Normal)
-                            self.treeSeriesDc[(book, country, issuer, bond, series)] = childSeries
-                            self.tree.SetItemText(childSeries, '{:,.2f}'.format(displayGroup.loc[book,country,issuer,bond,series]['PriceY']), 7)
-                            self.tree.SetItemText(childSeries, '{:,.2f}'.format(displayGroup.loc[book,country,issuer,bond,series]['PriceT']), 8)
+                            self.treeSeriesDc[bcibs] = childSeries #(book, country, issuer, bond, series)
+                            self.tree.SetItemText(childSeries, '{:,.2f}'.format(displayGroup.at[bcibs, 'PriceY']), 7)#book,country,issuer,bond,series
+                            self.tree.SetItemText(childSeries, '{:,.2f}'.format(displayGroup.at[bcibs, 'PriceT']), 8)#book,country,issuer,bond,series
                             for (i,col) in zipped:
-                                self.tree.SetItemText(childSeries, '{:,.0f}'.format(displayGroup.loc[book,country,issuer,bond,series][col]), i)
+                                self.tree.SetItemText(childSeries, '{:,.0f}'.format(displayGroup.at[bcibs, col]), i)#book,country,issuer,bond,series
+                                #self.tree.SetItemText(childSeries, '{:,.0f}'.format(displayGroup.loc[bcibs][col]), i)#book,country,issuer,bond,series
         
         self.tree.Expand(self.root)
+        # print 'risktree' + str(datetime.datetime.now() - x)
         pub.sendMessage('TREE_REDRAWN', message=MessageContainer('BOOK_RISK_TREE'))
         #print self.treeSeriesDc
 
@@ -648,7 +664,9 @@ class DataFrameToTreeListCtrl(wx.Panel):
         self.root = self.tree.AddRoot("Total")
         for i,(c,f) in enumerate(zip(self.columnList,self.columnFormats)):
             self.tree.SetItemText(self.root, f.format(self.groupedDataSum[c].sum()), i+1)
+        # x = datetime.datetime.now()        
         self.drawLeaf(0,self.root,[])
+        # print 'tree' + str(datetime.datetime.now() - x)
         self.tree.Expand(self.root)
         self.tree.Thaw()
         pub.sendMessage('TREE_REDRAWN', message=MessageContainer(self.strTreeID))
