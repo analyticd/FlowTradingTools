@@ -1,0 +1,258 @@
+Country code,Long name,Region
+AD,Andorra,DM
+AE,UAE,Middle East
+AF,Afghanistan,Asia
+AG,Antigua And Barbuda,Latam
+AI,Anguilla,Latam
+AL,Albania,CEE
+AM,Armenia,CIS
+AN,Neth. Antilles,Latam
+AO,Angola,Africa
+AQ,Antarctica,Latam
+AR,Argentina,Latam
+AS,American Samoa,Asia
+AT,Austria,DM
+AU,Australia,DM
+AW,Aruba,Latam
+AX,Aland Islands,CEE
+AZ,Azerbaijan,CIS
+BA,Bosnia,CEE
+BB,Barbados,Latam
+BD,Bangladesh,Asia
+BE,Belgium,DM
+BF,Burkina Faso,Africa
+BG,Bulgaria,CEE
+BH,Bahrain,Middle East
+BI,Burundi,Africa
+BJ,Benin,Africa
+BL,St Barthelemy,Latam
+BM,Bermuda,DM
+BN,Brunei Darussalam,Asia
+BO,Bolivia,Latam
+BQ,"Bonaire, Saint Eustatius And Saba",Latam
+BR,Brazil,Latam
+BS,Bahamas,Latam
+BT,Bhutan,Asia
+BV,Bouvet Island,DM
+BW,Botswana,Africa
+BY,Belarus,CIS
+BZ,Belize,Latam
+CA,Canada,DM
+CC,Cocos (Keeling) Islands,DM
+CD,"Congo, The Democ. Rep. Of",Africa
+CF,Central African Republic,Africa
+CG,Rep. of Congo,Africa
+CH,Switzerland,DM
+CI,Ivory coast,Africa
+CK,Cook Islands,Asia
+CL,Chile,Latam
+CM,Cameroon,Africa
+CN,China,Asia
+CO,Colombia,Latam
+CR,Costa Rica,Latam
+CU,Cuba,Latam
+CV,Cape Verde,Africa
+CW,Curacao,Latam
+CX,Christmas Island,Latam
+CY,Cyprus,DM
+CZ,Czech republic,CEE
+DE,Germany,DM
+DJ,Djibouti,Africa
+DK,Denmark,DM
+DM,Dominica,Latam
+DO,Dominican Republic,Latam
+DZ,Algeria,Africa
+EC,Ecuador,Latam
+EE,Estonia,DM
+EG,Egypt,Middle East
+EH,Western Sahara,Africa
+ER,Eritrea,Africa
+ES,Spain,DM
+ET,Ethiopia,Africa
+FI,Finland,DM
+FJ,Fiji,Asia
+FK,Falkland Islands (Malvinas),Latam
+FM,Micronesia (Federated States Of),Asia
+FO,Faeroe Islands,CEE
+FR,France,DM
+GA,Gabon,Africa
+GB,Great Britain,DM
+GD,Grenada,Latam
+GE,Georgia,CEE
+GF,French Guiana,Latam
+GG,"Guernsey, C.I.",DM
+GH,Ghana,Africa
+GI,Gibraltar,DM
+GL,Greenland,DM
+GM,Gambia,Africa
+GN,Guinea,Africa
+GP,Guadeloupe,Latam
+GQ,Equatorial Guinea,Africa
+GR,Greece,DM
+GS,S. Georgia And S. Sandwich Isl.,Latam
+GT,Guatemala,Latam
+GU,Guam,Asia
+GW,Guinea-Bissau,Africa
+GY,Guyana,Latam
+HK,Hong Kong,Asia
+HM,Heard And Mcdonald Islands,DM
+HN,Honduras,Latam
+HR,Croatia,CEE
+HT,Haiti,Latam
+HU,Hungary,CEE
+ID,Indonesia,Asia
+IE,Ireland,DM
+IL,Israel,DM
+IM,Isle of Man,DM
+IN,India,Asia
+IO,British Indian Ocean Territory,Asia
+IQ,Iraq,Middle East
+IR,Iran (Islamic Republic Of),Middle East
+IS,Iceland,DM
+IT,Italy,DM
+JE,Jersey,DM
+JM,Jamaica,Latam
+JO,Jordan,Middle East
+JP,Japan,Asia
+KE,Kenya,Africa
+KG,Kyrgyzstan,CIS
+KH,Cambodia,Asia
+KI,Kiribati,Asia
+KM,Comoros,Africa
+KN,St. Kitts And Nevis,Latam
+KP,"Korea, Dem. People'S Rep.(North)",Asia
+KR,Korea,Asia
+KW,Kuwait,Middle East
+KY,Cayman Islands,Latam
+KZ,Kazakhstan,CIS
+LA,Laos People'S Democratic Rep.,Asia
+LB,Lebanon,Middle East
+LC,St. Lucia,Latam
+LI,Liechtenstein,DM
+LK,Sri Lanka,Asia
+LR,Liberia,Africa
+LS,Lesotho,Africa
+LT,Lithuania,CEE
+LU,Luxembourg,DM
+LV,Latvia,CEE
+LY,Libyan Arab Jamahiriya,Africa
+M1,Multi National,Supranational
+MA,Morocco,Middle East
+MC,Monaco,DM
+MD,"Moldova, Republic Of",CEE
+ME,Montenegro,CEE
+MF,St. Martin,Latam
+MG,Madagascar,Africa
+MH,Marshall Islands,Asia
+MK,Macedonia,CEE
+ML,Mali,Africa
+MM,Myanmar,Asia
+MN,Mongolia,Asia
+MO,Macau,Asia
+MP,Northern Mariana Islands,Asia
+MQ,Martinique,Latam
+MR,Mauritania,Africa
+MS,Montserrat,Latam
+MT,Malta,DM
+MU,Mauritius,Africa
+MULT,Mult,Supranational
+MV,Maldives,Asia
+MW,Malawi,Africa
+MX,Mexico,Latam
+MY,Myanmar,Asia
+MZ,Mozambique,Africa
+NC,New Caledonia,Asia
+NE,Niger,Africa
+NF,Norfolk Island,Asia
+NG,Nigeria,Africa
+NI,Nicaragua,Latam
+NL,Netherlands,DM
+NM,Namibia,Africa
+NO,Norway,DM
+NP,Nepal,Asia
+NR,Nauru,Asia
+NU,Niue,Asia
+NZ,New Zealand,DM
+OM,Oman,Middle East
+PA,Panama,Latam
+PE,Peru,Latam
+PF,French Polynesia,Asia
+PG,Papua New Guinea,Asia
+PH,Philippines,Asia
+PK,Pakistan,Asia
+PL,Poland,CEE
+PM,St. Pierre And Miquelon,DM
+PN,Pitcairn,Asia
+PR,Puerto Rico,Latam
+PS,Palestine,Middle East
+PT,Portugal,DM
+PW,Palau,Asia
+PY,Paraguay,Latam
+PZ,Panama Canal Zone,Latam
+QA,Qatar,Middle East
+RE,Reunion,Asia
+RO,Romania,CEE
+RS,Serbia,CEE
+RU,Russia,CIS
+RW,Rwanda,Africa
+S1,Supranational,Supranational
+SA,Saudi,Middle East
+SB,Solomon Islands,Asia
+SC,Seychelles,Asia
+SD,Sudan,Africa
+SE,Sweden,DM
+SG,Singapore,Asia
+SH,St. Helena,Latam
+SI,Slovenia,CEE
+SJ,Svalbard And Jan Mayen Islands,DM
+SK,Slovakia,CEE
+SL,Sierra Leone,Africa
+SM,San Marino,DM
+SN,Senegal,Africa
+SNAT,Supranational,Supranational
+SO,Somalia,Africa
+SR,Suriname,Africa
+SS,South Sudan,Africa
+ST,Sao Tome And Principe,Africa
+SV,El Salvador,Latam
+SX,Sint Maarten (Dutch Part),Latam
+SY,Syrian Arab Republic,Middle East
+SZ,Swaziland,Africa
+TC,Turks And Caicos Islands,Latam
+TD,Chad,Africa
+TF,French Southern Territories,Latam
+TG,Togo,Africa
+TH,Thailand,Asia
+TJ,Tajikistan,CIS
+TK,Tokelau,Asia
+TL,Timor Leste,Asia
+TM,Turkmenistan,CIS
+TN,Tunisia,Middle East
+TO,Tonga,Asia
+TR,Turkey,CEE
+TT,Trinidad And Tobago,Latam
+TV,Tuvalu,Asia
+TW,Taiwan,Asia
+TZ,Tanzania,Africa
+UA,Ukraine,CIS
+UG,Uganda,Africa
+UM,U.S. Minor Outlaying Islands,DM
+US,USA,DM
+UY,Uruguay,Latam
+UZ,Uzbekistan,CIS
+VA,Holy See (Vatican City State),DM
+VC,St. Vincent And The Grenadines,Latam
+VE,Venezuela,Latam
+VG,"Virgin Islands, British",Latam
+VI,"Virgin Islands, U.S.",Latam
+VN,Vietnam,Asia
+VU,Vanuatu,Asia
+WF,Wallis And Futuna Islands,Asia
+WS,Samoa,Asia
+XD,East Caribbean,Latam
+YE,Yemen,Middle East
+YT,Mayotte,Africa
+ZA,South Africa,Africa
+ZB,Seborga,DM
+ZM,Zambia,Africa
+ZW,Zimbabwe,Africa
