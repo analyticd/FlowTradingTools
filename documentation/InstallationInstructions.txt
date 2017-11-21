@@ -1,1 +1,38 @@
+###This is all to be done on the user machine only (local installation), WITHOUT admin rights.###
+
+1/Python environment
+Anaconda is the preferred Python distribution. Install Python 2.7 32bit. When prompted make sure you only install for the current user and you make Anaconda your default Python environment. IMPORTANT: Add Conda to your PATH variable when prompted (Anaconda will advise you not to, do it anyway).
+https://www.continuum.io/downloads
+
+2/Bloomberg add-in
+Make sure you have the latest version of the Bloomberg terminal installed including all API components. You should be able to launch Bloomberg without it prompting you to update your terminal.
+Install Python 2.7 binary installer 32 bit
+http://www.bloomberglabs.com/api/libraries/
+
+3/Setting up the Internet connection - only needed if accessing the internet through a proxy.
+*O:global markets: credit sales and trading: FlowTradingToolsRelease: documentation, there's a ".condarc" file. 
+*Copy that file in your windows home folder - typically is C:\Users\Username
+*If you open that file with notepad, it has the proxy settings to access the internet. You also need, temporarily, your username and password written in plain text in the file. Bear in mind username might be just username or might be SBINTL\username.
+
+4/Install dependencies
+Open command line (Run: cmd)
+Type the following, say yes to all
+conda install wxpython (note: we're still using wxpython classic - not Phoenix)
+conda install pyodbc
+conda install sqlalchemy
+conda install pandas=0.20.3
+
+5/For good order remove your password from the proxy file
+
+6/That's it. If everything works, and you are logged in to Bloomberg, you should be able to double click O:\Global Markets\Credit Sales and Trading\FlowTradingToolsRelease\FlowTradingTools.bat  (you can create a link to this file on your desktop)
+
+
+Note: previous issue, no longer relevant - kept as a reminder:
+*copy 2 files to different folder as per: (warning - this might not be needed anymore)
+**https://github.com/ContinuumIO/anaconda-issues/issues/37 and
+**http://stackoverflow.com/questions/19280894/py2exe-no-system-module-pywintypes
+
+
+
+
 

@@ -1,0 +1,50 @@
+"""
+Pricer input tips
+Software and documentation written by Alexandre Almosni
+(c) 2015-2017 Alexandre Almosni
+Released under Apache 2.0 license. More info at http://www.apache.org/licenses/LICENSE-2.0
+"""
+
+
+I Navigation
+============
+
+Excel like in general.
+Ctrl+Arrow goes to beginning or end of block.
+Ctrl+Page Up/Down switches between tabs.
+Right click or Menu key brings a contextual menu
+
+II Changing price
+=================
+
+Changing the BID price will move the ASK by the same amount.
+Changing the ASK price will only move the ASK price, therefore changing the BID/ASK spread.
+There are three ways to change the price:
+-input the price
+-input the change by typing + or - before: so +1 adds 1pt.
+-input the change in yield basis points by typing + or - before and b or B at the end: so +5b increases the yield by 5 basis points.
+All numbers are rounded to the nearest 1/16th.
+When inputting change in prices the following shortcuts are valid (and also work with - instead of +):
++12 -> +0.5 (not +12pts)
++14, +34 -> +0.25, +0.75
++18, +38, +58, +78
++116, +316, +516, +716, +916, +1116, +1316, +1516
+
+
+III Changing size
+=================
+
+Sizes are in thousands (M). Just input the size individually in the bid and ask column, without any comma.
+
+
+IV Multiple input
+=================
+
+Two types are supported: multiple cell selection and copy/paste from Excel.
+Multiple cell selection: with the mouse or the keyboard (shift+arrows) you can select a BID range. The active cell MUST BE the cell at the TOP of the selected range. Input the change (for example +0.25) then press Enter, and that change will be applied to all the bonds in the range.
+Copy/Paste from Excel: copy a range in Excel consisting of either BID and ASK (two columns) or BID ASK BID_SIZE ASK_SIZE (four columns). Select the top left BID in the Pricer, then right-click or Menu key and select Paste prices. Warning: this will only work if the columns are next to each other in the Pricer.
+
+
+"""
+END
+"""

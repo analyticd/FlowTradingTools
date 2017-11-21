@@ -1,0 +1,1 @@
+Out of memory issue in the console at start-up: ma_logs folder, delete ma_full.csvz, and restart. It will take a LONG time (10minutes+), you might need to restart again. This rebuilds the marketAxess database from scratch. It is very large so occasionally gets corrupted.

@@ -1,0 +1,183 @@
+"""
+Pricer guide
+Software and documentation written by Alexandre Almosni
+(c) 2015-2017 Alexandre Almosni
+Released under Apache 2.0 license. More info at http://www.apache.org/licenses/LICENSE-2.0
+"""
+
+Pricer guide
+============
+
+I    Document objective
+II   Application description
+III  File structure
+IV   Inforalgo
+V    Outlook / Bloomberg message issues
+VI   Workflow
+VII  Common bugs
+VIII Adding new bonds
+
+
+I    Document objective
+=======================
+
+This file wishes to explain how the Pricer module of FlowTradingTools works. It is not intended as a how-to but more as a reference should bugs come up in the future. It assumes some knowledge of programming, Python, and Bloomberg TOMS system.
+
+
+II   Application description
+============================
+
+The Pricer is a Python GUI application which facilitates the quoting of credit bonds by the trading desk. Its main features are:
+*listing bonds and bond analytics in a convenient way
+*updating our offerings on ALLQ
+*sending runs to clients.
+
+The module can be run independently as a standalone application. This enables to circumvent bugs / startup issues in FlowTradingTools which is a much bigger application. However, some features will be missing, mostly to do with bond positions: in particular there will be no link to the Front database or the Trade History Database.
+
+
+III  File structure
+===================
+
+All files are in O:\Global Markets\Credit Sales and Trading\FlowTradingToolsRelease where O is \\ad.msdprd.com.
+
+There is a Pricer.bat file that launches the Pricer as a standalone application. As part of the FlowTradingTools, it is launched through the menu.
+
+The root folder has .pyc compiled files. The source folder has the .py sources files. The definitions folder has all the user defined setting files.
+
+The temp folder has some temporary files, typically these are caches to speed-up start-ups.
+
+Files used by the pricer are (without extension):
+-inforalgo
+-inforalgopanel
+-StaticDataImport
+-BondDataModel
+-blpapiwrapper
+-SwapHistory
+
+Additionally required Python modules are:
+-wxpython
+-pandas
+-sqlalchemy
+-pyodbc
+-win32com
+
+In the definitions folder, these files are used:
+-bonduniverse.xls: this lists all the bonds we trade
+-runs.csv: the structure of the runs sent to clients
+-***Tab.xls such as TurkeyTab.xls: a Pricer tab. Bond names are as defined in bonduniverse.xls
+-TabListByTrader.csv: all the tabs that the Pricer should use, depending on the Windows user name in the header row
+-colFormats.csv: display format for columns in the Pricer
+-bbgToBdmDic.csv: link between columns as defined by the Pricer and as defined by Bloomberg
+-genericSettings.csv: other settings
+
+
+IV   Inforalgo
+==============
+
+Prices input in the Pricer are sent to Inforalgo who in turn sends it to Bloomberg.
+
+Contacts:
+
+Ian Bavington, Development Group, Inforalgo Information Technology Limited
+Tel +44 121 708 1155 Fax +44 121 707 7331
+Email ian.bavington@inforalgo.com or support@Inforalgo.com
+Web http://www.Inforalgo.com
+
+At ICBCS:
+-Andrew Maxwell
+-Nick Wood
+-Lee Wheeler
+-Ross Hanson
+-Rajeev Vohora
+
+At Bloomberg (TOMS related issues):
+-Andrew Norris
+-Meredith Wilkinson
+
+Servers:
+-UAT: CIBLDNGSQLCU01C\globalmc_uat03    database called inftest
+-PROD: CIBLDNGSQLCP01\GLOBALMC_PRD03    database called infprod
+
+Logic:
+-Pricer writes to Inforalgo database
+-Inforalgo database sends data to Bloomberg private pricing source SBNY (Standard Bank UK)
+-In TOMS, on a bond by bond basis, users have to map the pricing source to SBNY (both inside price and level 1 price and size)
+
+The above is a safety process - if the Pricer fails and no one can debug it, you can revert to hand pricing.
+
+
+V    Outlook / Bloomberg message issues
+=======================================
+
+The objective is to send runs easily in a Bloomberg readable format which would display correctly on user terminals as well as be scraped correctly by Bloomberg QMGR.
+
+Outlook setting:
+-File->Options->Mail->Compose messages->Compose messages in this format-> select Plain Text
+-File->Options->Advanced->International Options-> check Automatically select encoding for outgoing messages, preferred encoding Unicode (UTF-8)
+
+Bloomberg setting:
+-MSG9 option 12 Compose/Edit: Default Compose Format Short-Style, Reply and Forward Format, Use Sender's format
+
+
+VI   Workflow
+=============
+
+Pricer checks all the grids it needs to display.
+
+It creates a BondDataModel (bdm) with all the bonds. The bdm creates a connection to Bloomberg for EM bonds and receives updates whenever a Bloomberg price changes. For the risk free bonds (IRHedges tab), it polls price and yield from CBBT every 10 minutes.
+
+The pricer also opens a connection to the Inforalgo SQLTable.
+
+At startup if it can't find the data it needs in the temp folder it downloads historical data and caches it into the temp folder.
+
+Note that at startup it also does a bulk download from Bloomberg before creating a streaming connection - this is because the streaming connection from Bloomberg can be slow at the beginning when connecting to lots of data. For that reason, changes to prices soon after the application start can take time (sometimes several minutes) before appearing in the pricer. After the first 15-30mn, changes are in general immediate (a few seconds).
+
+From thereon workflow is as follows:
+-user changes a price or a size, data is sent to Inforalgo and cells go yellow.
+-the data is usually pushed to Bloomberg straight away
+-it takes a few seconds for the data to come back from Bloomberg to the pricer: cells flash red to become white/gray again, which is confirmation Bloomberg has the right price and all analytics in the Pricer are updated.
+
+
+VII  Common bugs
+================
+
+The vast majority of bugs comes from corrupt data structure, in particular when adding new bonds. Check in particular that things are named appropriately in the bonduniverse and the tab files.
+
+A bond can only appear once in the bonduniverse.
+
+When in doubt delete all files in the temp folder before restarting (don't delete the folder itself).
+
+Sometimes the Bloomberg connection doesn't close properly. In doubt restart the PC, otherwise the first step is to kill the Pricer, check there is no Python or wxPython process open in the Windows task manager, kill the Bloomberg and check there is no wintrv or blpplus process running.
+
+If prices are not feeding Bloomberg: in the Inforalgo tab of the pricer one can Refresh the table. Data sent with flag "completed" means the data is in the Inforalgo table but did NOT go to Bloomberg. It needs to have the flag "extracted". If bonds are stuck in "completed" it is usually a problem with Inforalgo and one needs to contact them.
+
+
+VIII Adding new bonds
+=====================
+
+*Add the bonds in TOMS in the right book as usual. You can use Hand pricing until the bond has an ISIN.
+
+*Once the bond has an ISIN, add it into the BondUniverse file, run Update Bond Universe, then add it into one of the Pricer tab.
+
+*In genericSettings.csv, add floaters in the SPECIALBONDS column, add amortizers in the SINKABLEBONDS column. This will ensure the right rule for z-spread calculation.
+
+*On the Inforalgo tab, create a record for the bond: insert an ISIN, a bid, an offer, a bid size, an ask size, and press Add. Check that there is a price feeding on ALLQ with source SBNY.
+
+*In TOMS, set up the pricing as follows (PSU1 function):
+-REGS bond:
+--Inside: Source Priced (X), with source SBNY
+--Level 1: Source Priced (X), with source SBNY. Bid/Ask Amount (S)ource priced
+--Level 2: Relative priced, 0 0 P I
+--Level 3: Relative priced, 0 0 P I, Bid/Ask Amount option 1
+-144A bond:
+--Inside: Matrix Priced, Benchmark is the REGS bond, Priced by SBNY, (S)ource, B 0 P A 0
+--Level 1: Relative priced, 0 0 P I Bid/Ask Amount H 1 1
+--Level 2: Relative priced, 0 0 P I
+--Level 3: Relative priced, 0 0 P I, Bid/Ask Amount option 1
+
+*That should be enough, if the price still doesn't feed, in TOMS (TW worksheet) check that AutoExec is set to ON for that particular bond.
+
+
+"""
+END
+"""
