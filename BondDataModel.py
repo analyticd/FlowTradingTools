@@ -78,12 +78,12 @@ class RFdata(wx.Timer):
 
 
 class BDMdata(wx.Timer):
-    def __init__(self, secs, bdm):
+    def __init__(self, secs, bdm, shot=False):
         wx.Timer.__init__(self)
         self.bdm = bdm
         self.dic = pandas.Series((self.bdm.df['ISIN'] + '@CBBT Corp').values, index=self.bdm.df.index).to_dict()
         self.Bind(wx.EVT_TIMER, self.refreshBDMPrice)
-        self.Start(1000 * secs, oneShot=False)
+        self.Start(1000 * secs, oneShot=shot)
 
     def refreshBDMPrice(self,event):
         out = blpapiwrapper.simpleReferenceDataRequest(self.dic,'PX_MID')['PX_MID']
@@ -366,7 +366,8 @@ class BondDataModel():
         # Risk free bonds: no streaming as too many updates - poll every 15 minutes
         rfRequest = blpapiwrapper.BLPTS(list((self.rfbondsisins + '@CBBT' + ' Corp').astype(str)), self.bbgPriceRFQuery)
         self.RFtimer = RFdata(900, rfRequest, self)
-        self.BDMdata = BDMdata(600, self) #10 MINUTES
+        BDMdata(20, self, True) #20 seconds, once
+        BDMdata(600, self, False) #10 MINUTES, forever
         self.BDMEODsave = BDMEODsave(self)
 
     def firstPass(self, priorityBondList=[]):

@@ -24,8 +24,6 @@ import wx
 from wx.lib.wordwrap import wordwrap
 import pandas
 import datetime
-import subprocess
-import pythoncom
 from threading import Thread
 from guiWidgets import *
 
@@ -37,13 +35,9 @@ from BondTools import ChartEngine
 from BondTools import ChartTypes
 from TradeHistoryAnalysis import TradeHistory # this is important so you can import/pickle the existing file
 import ModelPortfolio
-import FO_Toolkit
-# import RiskTreeView
-# import BondDataModel
 import Pricer
 from RiskTreeManager import RiskTreeManager
 import ma_analysis
-# import time
 from StaticDataImport import APPPATH, TEMPPATH, bonds, traderLogins
 from ChartingPanel import ChartingPanel
 import toms_parser
@@ -107,27 +101,13 @@ def EVT_RESULT(win, func):
 
 ##############
 class TodayTradesThread(wx.Timer):
-    def __init__(self, wxObject, secs):
+    def __init__(self, wxObject, secs, shot=False):
         wx.Timer.__init__(self)
         self.wxObject = wxObject
         self.Bind(wx.EVT_TIMER, self.refresh)
-        self.Start(1000 * secs, oneShot=False)
+        self.Start(1000 * secs, oneShot=shot)
 
     def refresh(self, event):
-        self.wxObject.onTodayTradesSteps()
-        pub.sendMessage('POSITION_UPDATE', message=MessageContainer(self.wxObject.th.positions))
-##################################################################
-class TodayTradesThreadOld(Thread):
-    """Test Worker Thread Class."""
-    def __init__(self, wxObject):
-        """Init Worker Thread Class."""
-        Thread.__init__(self)
-        #pythoncom.CoInitialize()
-        self.wxObject = wxObject
-        self.start()    # start the thread
-    def run(self):
-        """Run Worker Thread."""
-        # This is the code executing in the new thread.
         self.wxObject.onTodayTradesSteps()
         pub.sendMessage('POSITION_UPDATE', message=MessageContainer(self.wxObject.th.positions))
 ##################################################################
@@ -302,13 +282,13 @@ class MainForm(wx.Frame):
         tradeHistoryMenuMonthlyQueryItem = tradeHistoryMenu.Append(wx.ID_ANY,"&Monthly query")
         tradeHistoryMenu.AppendSeparator()
         clientTradingReportItem = tradeHistoryMenu.Append(wx.ID_ANY,"Client trading &report")
+        volumeByBondItem = tradeHistoryMenu.Append(wx.ID_ANY,"Volume by bond")
 
         buildModelPortfolioItem = modelPortfolioMenu.Append(wx.ID_ANY,"&Build")
         printModelPortfolioItem = modelPortfolioMenu.Append(wx.ID_ANY,"&Text output")
         performanceChartModelPortfolioItem = modelPortfolioMenu.Append(wx.ID_ANY,"&Performance chart")
         sendModelPortfolioEmail = modelPortfolioMenu.Append(wx.ID_ANY,"&Send email")
 
-        openRepos = adminMenu.Append(wx.ID_ANY,"&Open repos")
         adminMenuUpdateBondUniverseItem = adminMenu.Append(wx.ID_ANY,"&Update BondUniverse file")
         highSCCheckItem = adminMenu.Append(wx.ID_ANY,"&High SC check")
         newClientReportItem = adminMenu.Append(wx.ID_ANY,"&New client report")
@@ -343,6 +323,7 @@ class MainForm(wx.Frame):
         self.Bind(wx.EVT_MENU, self.onAdvancedQuery,tradeHistoryMenuAdvancedQueryItem)
         self.Bind(wx.EVT_MENU, self.onMonthlyQuery,tradeHistoryMenuMonthlyQueryItem)
         self.Bind(wx.EVT_MENU, self.onClientTradingReport,clientTradingReportItem)
+        self.Bind(wx.EVT_MENU, self.onVolumeByBond, volumeByBondItem)
 
         self.Bind(wx.EVT_MENU, self.onAfricaWeekly, africaWeeklyItem)
         self.Bind(wx.EVT_MENU, self.onCeeWeekly, ceeWeeklyItem)
@@ -356,7 +337,6 @@ class MainForm(wx.Frame):
         self.Bind(wx.EVT_MENU, self.onPerformanceChartModelPortfolio,performanceChartModelPortfolioItem)
         self.Bind(wx.EVT_MENU, self.onSendModelPortfolioEmail,sendModelPortfolioEmail)
 
-        self.Bind(wx.EVT_MENU, self.onOpenRepos,openRepos)
         self.Bind(wx.EVT_MENU, self.onUpdateBondUniverse,adminMenuUpdateBondUniverseItem)
         self.Bind(wx.EVT_MENU, self.onNewClientReport,newClientReportItem)
         self.Bind(wx.EVT_MENU, self.onRegs144aReport,regs144aReportItem)
@@ -372,8 +352,8 @@ class MainForm(wx.Frame):
         self.notebook.AddPage(self.tabLogs, "Logs")
 
         self.log = wx.TextCtrl(self.tabLogs, wx.ID_ANY, size=(300,300), style = wx.TE_MULTILINE|wx.TE_READONLY|wx.HSCROLL)
-        self.redirLogBox=RedirectText(self.log)         # redirect text here
-        sys.stdout=self.redirLogBox
+        self.redirLogBox = RedirectText(self.log)         # redirect text here
+        sys.stdout = self.redirLogBox
         self.log.SetFont(wx.Font(10, wx.MODERN, wx.NORMAL, wx.NORMAL, False, u'Courier'))
         sizerLogH = wx.BoxSizer()
         sizerLogH.Add(self.log,proportion=1,flag=wx.EXPAND)
@@ -413,13 +393,6 @@ class MainForm(wx.Frame):
 
     ############GENERIC DIALOG BOXES############
     def comboQuery(self, event, title, question, choices):
-        """Function to create combo dialog
-
-        Keyword arguments:
-        title : title of combo box 
-        question : question
-        choices : choices
-        """
         dlg = ComboDialog(title, question, choices)
         res = dlg.ShowModal()
         dlg.Destroy()
@@ -430,13 +403,6 @@ class MainForm(wx.Frame):
             return ''
 
     def multipleComboQuery(self, event,myTitle,myQuestionList,myChoicesList):
-        """function to show multiplpe combo dialog
-
-        Keyword arguments:
-        myTitle : title of combo box 
-        myQuestionList : list of questions 
-        myChoicesList : list of choices
-        """
         dlg = MultipleComboDialog(myTitle,myQuestionList,myChoicesList)
         res = dlg.ShowModal()
         dlg.Destroy()
@@ -451,9 +417,6 @@ class MainForm(wx.Frame):
             return ''
 
     def textQuery(self,event,title,default=''):
-        """
-        Function to create wx.TextEntryDialog.
-        """
         dlg = wx.TextEntryDialog(self, '',title,default, style=wx.OK)
         res = dlg.ShowModal()
         data = dlg.GetValue()
@@ -462,9 +425,6 @@ class MainForm(wx.Frame):
             return data
         else:
             return ''
-
-    def onClearLogButton(self, event):
-        self.log.Clear()
 
     def buildTradeHistory(self,forceRebuild):
         """Function to build trade History 
@@ -480,8 +440,6 @@ class MainForm(wx.Frame):
         self.issuerlist.sort()
         self.countrylist = list(bonds['CNTRY_OF_RISK'].drop_duplicates().astype(str))
         self.countrylist.sort()
-        #for i in range(1,self.menuBar.GetMenuCount()):
-        #    self.menuBar.EnableTop(i,True)
 
     def buildMarketAxess(self,forceRebuild):
         """Function to build MarketAxess history 
@@ -517,9 +475,6 @@ class MainForm(wx.Frame):
 
 
     def checkModelPortfolio(self):
-        """Function to check if the model portfolio has been loaded. If it hasn't, onBuildModelPortfolio is called to build
-        the model portfolio.
-        """
         if not(self.modelPortfolioLoaded):
             self.onBuildModelPortfolio()
 
@@ -686,13 +641,19 @@ class MainForm(wx.Frame):
         questionlist=['Select book:','Select year:','Select month:']
         books=['ALL']
         books.extend(self.th.LDNFLOWBOOKS)
-        choiceList=[books,['2017','2016','2015','2014','2013','2012','2011','2010','2009'],['Full Year','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']]
+        choiceList=[books,map(str, sorted(range(2009, 2018, 1), reverse=True)),['Full Year','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']]
         data=self.multipleComboQuery(event,'Client trading report',questionlist,choiceList)
         book=data[0]
         year=int(data[1])
         month=[i for i,x in enumerate(choiceList[2]) if x == data[2]][0]
         self.th.clientTradingReport(year,month,book)
         pass
+
+    def onVolumeByBond(self, event):
+        self.log.Clear()
+        self.notebook.SetSelection(0)
+        self.th.df.groupby(['Year', 'Country', 'Bond'])['AbsQty'].sum().to_clipboard()
+        print 'The Volume per year, country, bond report was copied to the clipboard...'
 
     #Threading
     def onTestHistoryBuildItem(self,event):
@@ -793,9 +754,7 @@ class MainForm(wx.Frame):
         print 'Email sent to '+email
         print ''
 
-    ############FRONT ACTIONS############
-
-
+    ############FETCHING NEW TRADES############
     def onTodayTradesSteps(self):
         """Function to load today's trades  
         """
@@ -803,53 +762,22 @@ class MainForm(wx.Frame):
         self.xmlLogger.refresh()
         self.thToday = TradeHistory(self.xmlLogger.df)
         self.th.appendToday(self.thToday)
-        print 'See Trade Activity tab for new trades.'
-        pass
 
     def onTodayTrades(self, event):
-        TodayTradesThread(self, 300)
-        pass
-
-    def onTodayTradesPreMurex(self,event):
-        TodayTradesThread(self)
-        pass
-
-
-    def onOpenRepos(self,event):
-        """Function to load live repos from FRONT 
-        """
-        self.log.Clear()
-        self.notebook.SetSelection(0)
-        busyDlg = wx.BusyInfo('Fetching live repos from Front...', parent=self)
-        savepath = 'openrepos.csv'
-        argstring = self.front_username+' '+self.front_password+' ' + savepath
-        opstr='python "'+APPPATH+'FO_toolkit.pyc" open_repos '+argstring#because of the space in global markets
-        #print opstr
-        subprocess.call(opstr)
-        openRepos=pandas.read_csv(TEMPPATH+savepath,index_col=0)
-        openRepos['Quantity']=openRepos['Quantity'].apply(lambda y:'{:,.0f}'.format(y))
-        busyDlg = None
-        print openRepos
-
+        TodayTradesThread(self, 1, True)
+        TodayTradesThread(self, 300, False)
 
     ############ADMINISTRATION ACTIONS############
     def onUpdateBondUniverse(self,event):
-        """Function to update bond universe 
-        """
         self.log.Clear()
         BondTools.refresh_bond_universe()
-        #now need to update all connected stuff
 
     def onNewClientReport(self,event):
-        """Function to create new client report 
-        """
         self.log.Clear()
-        year=int(self.comboQuery(event,'New client report','Year?',['2017','2016','2015','2014','2013','2012','2011','2010','2009']))
+        year=int(self.comboQuery(event,'New client report','Year?', map(str, sorted(range(2009, 2018, 1), reverse=True))))
         self.th.newclients(year)
 
     def onRegs144aReport(self,event):
-        """Function to create Regs144a report 
-        """
         self.log.Clear()
         self.th.regs144a()
 
@@ -858,7 +786,7 @@ class MainForm(wx.Frame):
         """
         self.log.Clear()
         questionlist = ['Year?','Month?','Cutoff SC?']
-        choiceList = [['2017','2016','2015','2014','2013','2012','2011','2010','2009'],['Full Year','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],['25','50','100']]
+        choiceList = [map(str, sorted(range(2009, 2018, 1), reverse=True)),['Full Year','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],['25','50','100']]
         data = self.multipleComboQuery(event,'SC check',questionlist,choiceList)
         year = int(data[0])
         month = [i for i,x in enumerate(choiceList[1]) if x == data[1]][0]
@@ -867,14 +795,10 @@ class MainForm(wx.Frame):
         pass
 
     def onForceRebuildTradeHistory(self, event):
-        """Function to force rebuild the trade history 
-        """
         TradeHistoryThread(self, True)
-        pass
 
     def onBuildModelPortfolioButton(self, event):
         BuildModelPortfolioThread(self)
-        pass
 
     def onMaDataReportItem(self,event):
         self.log.Clear()

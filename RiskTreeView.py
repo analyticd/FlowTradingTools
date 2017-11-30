@@ -457,7 +457,7 @@ class RiskTreeBookPnL(wx.Panel):
         # x=datetime.datetime.now()
         colIDs = [1,2,3,4,5,6,9,10]
         colNames = ['Qty','EODValue','Risk','TotalPnL','MK','SOD_Pos','SODPnL','TradePnL']
-        zipped = zip(colIDs,colNames)
+        zipped = zip(colIDs, colNames)
         self.tree.DeleteAllItems()
         self.root = self.tree.AddRoot("Total")
         for (i,col) in zipped:
@@ -467,9 +467,11 @@ class RiskTreeBookPnL(wx.Panel):
             childBook = self.tree.AppendItem(self.root, book)
             self.tree.SetItemImage(childBook, self.fldridx, which = wx.TreeItemIcon_Normal)
             self.tree.SetItemImage(childBook, self.fldropenidx, which = wx.TreeItemIcon_Expanded)
-            self.treeBookDc[book]=childBook
+            self.treeBookDc[book] = childBook
+            summed = displayGroup.loc[book].sum()
             for (i,col) in zipped:
-                self.tree.SetItemText(childBook, '{:,.0f}'.format(displayGroup.loc[book][col].sum()), i)
+                #self.tree.SetItemText(childBook, '{:,.0f}'.format(displayGroup.loc[book][col].sum()), i)
+                self.tree.SetItemText(childBook, '{:,.0f}'.format(summed[col]), i)
         
             for country in displayGroup.loc[book].index.get_level_values('LongCountry').unique():
                 childCountry = self.tree.AppendItem(childBook, country)
@@ -645,18 +647,23 @@ class DataFrameToTreeListCtrl(wx.Panel):
         else:
             generator = self.groupedDataSum.loc[tuple(parentItemList)].index.get_level_values(0).unique()
         for item in generator:
-                child = self.tree.AppendItem(parent,item)
-                itemList = list(parentItemList)
-                itemList.append(item)
-                if lvl < self.groupedDataSum.index.nlevels - 1:
-                    self.tree.SetItemImage(child, self.fldridx, which = wx.TreeItemIcon_Normal)
-                    self.tree.SetItemImage(child, self.fldropenidx, which = wx.TreeItemIcon_Expanded)
-                else:
-                    self.tree.SetItemImage(child, self.fileidx, which = wx.TreeItemIcon_Normal)
+            child = self.tree.AppendItem(parent,item)
+            itemList = list(parentItemList)
+            itemList.append(item)
+            if lvl < self.groupedDataSum.index.nlevels - 1:
+                self.tree.SetItemImage(child, self.fldridx, which = wx.TreeItemIcon_Normal)
+                self.tree.SetItemImage(child, self.fldropenidx, which = wx.TreeItemIcon_Expanded)
+            else:
+                self.tree.SetItemImage(child, self.fileidx, which = wx.TreeItemIcon_Normal)
+            if lvl < self.groupedDataSum.index.nlevels - 1:
+                summed = self.groupedDataSum.loc[tuple(itemList)].sum() # this accelerates
                 for i, (c,f) in enumerate(zip(self.columnList,self.columnFormats)):
-                    self.tree.SetItemText(child, f.format(self.groupedDataSum.loc[tuple(itemList)][c].sum()), i+1)
-                if lvl < self.groupedDataSum.index.nlevels - 1:
-                    self.drawLeaf(lvl+1, child, itemList)
+                    self.tree.SetItemText(child, f.format(summed[c]), i + 1)
+                self.drawLeaf(lvl + 1, child, itemList) # recursion
+            else:
+                for i, (c,f) in enumerate(zip(self.columnList,self.columnFormats)):
+                    self.tree.SetItemText(child, f.format(self.groupedDataSum.loc[tuple(itemList)][c].sum()), i + 1)
+
 
     def drawTree(self):
         self.tree.Freeze()
