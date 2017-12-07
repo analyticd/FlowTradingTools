@@ -206,7 +206,7 @@ class RunsGrid(gridlib.Grid):
         df : pandas.DataFrame 
         bdm : BondDataModel class instance 
 
-        By default the grid will have 100 lines and 60 rows (max 60 runs, 100 securities per run).
+        By default the grid will have 200 lines and 60 rows (max 60 runs, 200 securities per run).
 
         """
         gridlib.Grid.__init__(self, panel)

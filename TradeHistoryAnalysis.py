@@ -23,7 +23,6 @@ reportMonthlyClient()
 import pandas
 import datetime
 import time
-#import blpapiwrapper
 import os
 import cPickle as pickle
 import bz2
@@ -690,16 +689,16 @@ class TradeHistory:
             print bd + ': sell '+'{:,.0f}'.format(tradesize)+' of '+sellisin+' to buy '+buyisin
         pass
 
-    def newclients(self,year):
+    def newclients(self, year):
         """Query list of new clients 
 
         keyword arguments:
         year : year 
         """
-        subdf=self.df[self.df['Year']==year].copy()
-        subdf=subdf[subdf['FrontCounterparty']==subdf['Counterparty']][['FrontCounterparty', 'Bond', 'Date']]
-        subdf=subdf.drop_duplicates()
-        subdf['FrontCounterparty']=subdf['FrontCounterparty'].apply(lambda x:pandas.np.nan if ('INTERNAL' in x) else x)
+        subdf = self.df[self.df['Year']==year].copy()
+        subdf = subdf[subdf['FrontCounterparty']==subdf['Counterparty']][['FrontCounterparty', 'Bond', 'Date']]
+        subdf = subdf.drop_duplicates()
+        subdf['FrontCounterparty'] = subdf['FrontCounterparty'].apply(lambda x:pandas.np.nan if ('INTERNAL' in x) else x)
         subdf.dropna(inplace=True)
         print subdf
         pass
